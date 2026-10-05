@@ -7,8 +7,13 @@ WORKDIR /app
 COPY src ./src
 COPY web ./web
 
-# Crear carpeta de clases y compilar Java.
-# Incluimos las librerías de WEB-INF/lib en el classpath.
+# Crear carpeta para librerías
+RUN mkdir -p web/WEB-INF/lib
+
+# Agregar MySQL Connector/J
+ADD https://repo1.maven.org/maven2/com/mysql/mysql-connector-j/26.7.0/mysql-connector-j-26.7.0.jar /app/web/WEB-INF/lib/mysql-connector-j-26.7.0.jar
+
+# Compilar Java y generar WAR
 RUN mkdir -p web/WEB-INF/classes \
  && javac -encoding UTF-8 \
       -cp "/usr/local/tomcat/lib/servlet-api.jar:web/WEB-INF/lib/*" \
