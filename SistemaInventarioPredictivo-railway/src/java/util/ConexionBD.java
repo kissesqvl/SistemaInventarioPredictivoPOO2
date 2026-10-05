@@ -6,19 +6,8 @@ import java.sql.SQLException;
 
 public class ConexionBD {
 
-    private static final String URL =
-            "jdbc:sqlserver://localhost:1433;"
-            + "databaseName=SistemaInventarioPredictivo;"
-            + "encrypt=true;"
-            + "trustServerCertificate=true;";
-
-    private static final String USUARIO = "app_inventario";
-    private static final String CONTRASENA = "AppInventario#2026";
-
-    // Única instancia de ConexionBD
     private static final ConexionBD INSTANCIA = new ConexionBD();
 
-    // Constructor privado - Patrón Singleton
     private ConexionBD() {
     }
 
@@ -28,19 +17,29 @@ public class ConexionBD {
 
     private Connection crearConexion() throws SQLException {
 
+        String host = System.getenv("MYSQLHOST");
+        String puerto = System.getenv("MYSQLPORT");
+        String baseDatos = System.getenv("MYSQL_DATABASE");
+        String usuario = System.getenv("MYSQLUSER");
+        String contrasena = System.getenv("MYSQLPASSWORD");
+
+        String url = "jdbc:mysql://" + host + ":" + puerto + "/" + baseDatos
+                + "?useSSL=false&allowPublicKeyRetrieval=true"
+                + "&serverTimezone=UTC";
+
         try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             throw new SQLException(
-                    "No se pudo cargar el driver JDBC de SQL Server.",
+                    "No se pudo cargar el driver JDBC de MySQL.",
                     e
             );
         }
 
         return DriverManager.getConnection(
-                URL,
-                USUARIO,
-                CONTRASENA
+                url,
+                usuario,
+                contrasena
         );
     }
 
