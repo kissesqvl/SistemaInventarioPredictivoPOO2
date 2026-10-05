@@ -6,27 +6,38 @@ import java.sql.SQLException;
 
 public class ConexionBD {
 
-    // Configuración leída de variables de entorno (Railway).
-    // Si no existen, usa los valores locales de desarrollo.
+    // Lee una variable de entorno.
+    // Si no existe, utiliza el valor local indicado.
     private static String env(String nombre, String porDefecto) {
         String valor = System.getenv(nombre);
         return (valor == null || valor.isBlank()) ? porDefecto : valor;
     }
 
+    // Configuración MySQL
+    private static final String HOST =
+            env("MYSQLHOST", "localhost");
+
+    private static final String PORT =
+            env("MYSQLPORT", "3306");
+
+    private static final String DATABASE =
+            env("MYSQL_DATABASE", "SistemaInventarioPredictivo");
+
+    private static final String USUARIO =
+            env("MYSQLUSER", "root");
+
+    private static final String CONTRASENA =
+            env("MYSQLPASSWORD", "");
+
     private static final String URL =
-            "jdbc:sqlserver://" + env("DB_HOST", "localhost")
-            + ":" + env("DB_PORT", "1433") + ";"
-            + "databaseName=" + env("DB_NAME", "SistemaInventarioPredictivo") + ";"
-            + "encrypt=true;"
-            + "trustServerCertificate=true;";
+            "jdbc:mysql://" + HOST + ":" + PORT + "/" + DATABASE
+            + "?useSSL=false"
+            + "&allowPublicKeyRetrieval=true"
+            + "&serverTimezone=UTC";
 
-    private static final String USUARIO = env("DB_USER", "app_inventario");
-    private static final String CONTRASENA = env("DB_PASSWORD", "AppInventario#2026");
-
-    // Única instancia de ConexionBD
+    // Singleton
     private static final ConexionBD INSTANCIA = new ConexionBD();
 
-    // Constructor privado - Patrón Singleton
     private ConexionBD() {
     }
 
@@ -37,10 +48,10 @@ public class ConexionBD {
     private Connection crearConexion() throws SQLException {
 
         try {
-            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+            Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             throw new SQLException(
-                    "No se pudo cargar el driver JDBC de SQL Server.",
+                    "No se pudo cargar el driver JDBC de MySQL.",
                     e
             );
         }
