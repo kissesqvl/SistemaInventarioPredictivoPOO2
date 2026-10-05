@@ -119,7 +119,7 @@ public class UsuarioDao {
                             WHEN intentosFallidos + 1 >= 3 THEN 1
                             ELSE bloqueado
                         END,
-                    fechaActualizacion = GETDATE()
+                    fechaActualizacion = CURRENT_TIMESTAMP
                 WHERE idUsuario = ?
                 """;
 
@@ -151,8 +151,8 @@ public class UsuarioDao {
         String sql = """
                 UPDATE Usuario
                 SET intentosFallidos = 0,
-                    ultimoAcceso = GETDATE(),
-                    fechaActualizacion = GETDATE()
+                    ultimoAcceso = CURRENT_TIMESTAMP,
+                    fechaActualizacion = CURRENT_TIMESTAMP
                 WHERE idUsuario = ?
                 """;
 
