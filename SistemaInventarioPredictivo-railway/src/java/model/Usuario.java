@@ -1,6 +1,7 @@
 package model;
 
 import java.sql.Timestamp;
+import memento.UsuarioMemento;
 
 public class Usuario {
 
@@ -21,6 +22,10 @@ public class Usuario {
 
     public Usuario() {
     }
+
+    // =========================================================
+    // GETTERS Y SETTERS
+    // =========================================================
 
     public int getIdUsuario() {
         return idUsuario;
@@ -132,5 +137,52 @@ public class Usuario {
 
     public void setEstado(boolean estado) {
         this.estado = estado;
+    }
+
+    // =========================================================
+    // PATRÓN MEMENTO
+    // Guarda el estado actual del usuario
+    // =========================================================
+
+    public UsuarioMemento crearMemento() {
+
+        return new UsuarioMemento(
+                nombreUsuario,
+                correo,
+                idRol,
+                idPermiso,
+                bloqueado,
+                estado
+        );
+    }
+
+    // =========================================================
+    // PATRÓN MEMENTO
+    // Restaura un estado anterior
+    // =========================================================
+
+    public void restaurarMemento(UsuarioMemento memento) {
+
+        if (memento == null) {
+            return;
+        }
+
+        this.nombreUsuario =
+                memento.getNombreUsuario();
+
+        this.correo =
+                memento.getCorreo();
+
+        this.idRol =
+                memento.getIdRol();
+
+        this.idPermiso =
+                memento.getIdPermiso();
+
+        this.bloqueado =
+                memento.isBloqueado();
+
+        this.estado =
+                memento.isEstado();
     }
 }
