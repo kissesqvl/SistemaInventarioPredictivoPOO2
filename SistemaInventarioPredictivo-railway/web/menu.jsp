@@ -397,14 +397,14 @@
             <!-- =========================
                  GESTIÓN DE USUARIOS
 
-                 Por ahora:
-                 idRol = 1 corresponde
-                 al Administrador.
+                 Solo visible para
+                 Administrador idRol = 1
                  ========================= -->
 
             <% if (idRol != null && idRol == 1) { %>
 
-            <a href="#" class="menu-card">
+            <a href="<%= request.getContextPath() %>/MenuController?accion=usuarios"
+               class="menu-card">
 
                 <div class="icono">
                     👤
@@ -434,7 +434,8 @@
 
             <!-- CLIENTES -->
 
-            <a href="#" class="menu-card">
+            <a href="<%= request.getContextPath() %>/MenuController?accion=clientes"
+               class="menu-card">
 
                 <div class="icono">
                     👥
@@ -462,7 +463,8 @@
 
             <!-- PROVEEDORES -->
 
-            <a href="#" class="menu-card">
+            <a href="<%= request.getContextPath() %>/MenuController?accion=proveedores"
+               class="menu-card">
 
                 <div class="icono">
                     🚚
@@ -490,7 +492,8 @@
 
             <!-- MERCADERÍA / SERVICIOS -->
 
-            <a href="#" class="menu-card">
+            <a href="<%= request.getContextPath() %>/MenuController?accion=mercaderia"
+               class="menu-card">
 
                 <div class="icono">
                     📦
@@ -518,7 +521,8 @@
 
             <!-- VENTAS -->
 
-            <a href="#" class="menu-card">
+            <a href="<%= request.getContextPath() %>/MenuController?accion=ventas"
+               class="menu-card">
 
                 <div class="icono">
                     🛒
@@ -546,7 +550,8 @@
 
             <!-- REPORTES -->
 
-            <a href="#" class="menu-card">
+            <a href="<%= request.getContextPath() %>/MenuController?accion=reportes"
+               class="menu-card">
 
                 <div class="icono">
                     📊
@@ -570,7 +575,6 @@
                 </span>
 
             </a>
-
 
         </div>
 
