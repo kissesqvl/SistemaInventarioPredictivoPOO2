@@ -3,9 +3,7 @@ package configuracion;
 
 import jakarta.servlet.ServletContextEvent;
 import jakarta.servlet.ServletContextListener;
-import jakarta.servlet.annotation.WebListener;
 
-@WebListener
 public class InicializadorBD implements ServletContextListener {
 
     @Override
@@ -14,6 +12,9 @@ public class InicializadorBD implements ServletContextListener {
         String ejecutar = System.getenv("CONFIGURAR_CLIENTE_FK");
 
         if (!"true".equalsIgnoreCase(ejecutar)) {
+            evento.getServletContext().log(
+                "Configuracion de Cliente desactivada."
+            );
             return;
         }
 
@@ -21,15 +22,20 @@ public class InicializadorBD implements ServletContextListener {
             ConfigurarBD.configurarRelacionCliente();
 
             evento.getServletContext().log(
-                "Configuración de relación Cliente completada."
+                "Configuracion de relacion Cliente completada correctamente."
             );
 
         } catch (Exception e) {
 
             evento.getServletContext().log(
-                "ERROR al configurar la relación Cliente.",
+                "ERROR al configurar la relacion Cliente.",
                 e
             );
         }
+    }
+
+    @Override
+    public void contextDestroyed(ServletContextEvent evento) {
+        // No se requiere ninguna accion al detener la aplicacion.
     }
 }
