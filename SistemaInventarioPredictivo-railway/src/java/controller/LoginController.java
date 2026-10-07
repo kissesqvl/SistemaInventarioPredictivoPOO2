@@ -9,6 +9,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+import model.ResultadoLogin;
+import model.Usuario;
 import proxy.AccesoProxy;
 
 @WebServlet(name = "LoginController", urlPatterns = {"/LoginController"})
@@ -26,29 +28,66 @@ public class LoginController extends HttpServlet {
                           HttpServletResponse response)
             throws ServletException, IOException {
 
-        // Recibir datos del login.jsp
+        // Recibir datos enviados desde login.jsp
         String usuario = request.getParameter("usuario");
         String contrasena = request.getParameter("contrasena");
-        
 
-        // Autenticar mediante Proxy
-        String resultado = accesoProxy.autenticar(usuario, contrasena);
-        System.out.println("Resultado LoginFacade: [" + resultado + "]");
+        // Autenticar mediante el patrón Proxy
+        ResultadoLogin resultadoLogin =
+                accesoProxy.autenticar(usuario, contrasena);
+
+        // Obtener el estado de la autenticación
+        String resultado = resultadoLogin.getEstado();
+
+        System.out.println(
+                "Resultado LoginFacade: [" + resultado + "]"
+        );
 
         switch (resultado) {
 
+            // ==========================================
+            // LOGIN CORRECTO
+            // ==========================================
             case "ACCESO_CORRECTO":
 
+                // Obtener el objeto Usuario autenticado
+                Usuario usuarioAutenticado =
+                        resultadoLogin.getUsuario();
+
+                // Crear sesión del usuario
                 HttpSession sesion = request.getSession();
 
-                sesion.setAttribute("usuario", usuario);
+                // Guardar datos necesarios en la sesión
+                sesion.setAttribute(
+                        "usuario",
+                        usuarioAutenticado.getNombreUsuario()
+                );
 
+                sesion.setAttribute(
+                        "idUsuario",
+                        usuarioAutenticado.getIdUsuario()
+                );
+
+                sesion.setAttribute(
+                        "idRol",
+                        usuarioAutenticado.getIdRol()
+                );
+
+                sesion.setAttribute(
+                        "idPermiso",
+                        usuarioAutenticado.getIdPermiso()
+                );
+
+                // Redirigir al Módulo 2 - Menú Principal
                 response.sendRedirect(
-                        request.getContextPath() + "/bienvenida.jsp"
+                        request.getContextPath() + "/MenuController"
                 );
 
                 break;
 
+            // ==========================================
+            // PRIMER INTENTO FALLIDO
+            // ==========================================
             case "INTENTO_1":
 
                 request.setAttribute(
@@ -60,6 +99,9 @@ public class LoginController extends HttpServlet {
 
                 break;
 
+            // ==========================================
+            // SEGUNDO INTENTO FALLIDO
+            // ==========================================
             case "INTENTO_2":
 
                 request.setAttribute(
@@ -71,6 +113,9 @@ public class LoginController extends HttpServlet {
 
                 break;
 
+            // ==========================================
+            // USUARIO BLOQUEADO
+            // ==========================================
             case "USUARIO_BLOQUEADO":
 
                 request.setAttribute(
@@ -82,6 +127,9 @@ public class LoginController extends HttpServlet {
 
                 break;
 
+            // ==========================================
+            // USUARIO INACTIVO
+            // ==========================================
             case "USUARIO_INACTIVO":
 
                 request.setAttribute(
@@ -93,6 +141,9 @@ public class LoginController extends HttpServlet {
 
                 break;
 
+            // ==========================================
+            // CAMPOS VACÍOS
+            // ==========================================
             case "CAMPOS_VACIOS":
 
                 request.setAttribute(
@@ -104,6 +155,9 @@ public class LoginController extends HttpServlet {
 
                 break;
 
+            // ==========================================
+            // CREDENCIALES INCORRECTAS / OTRO CASO
+            // ==========================================
             default:
 
                 request.setAttribute(
@@ -117,6 +171,10 @@ public class LoginController extends HttpServlet {
         }
     }
 
+    /**
+     * Regresa al formulario de inicio de sesión
+     * conservando el mensaje de error.
+     */
     private void volverLogin(HttpServletRequest request,
                              HttpServletResponse response)
             throws ServletException, IOException {

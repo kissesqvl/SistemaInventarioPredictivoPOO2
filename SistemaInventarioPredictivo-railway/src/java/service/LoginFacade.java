@@ -1,6 +1,7 @@
 package service;
 
 import dao.UsuarioDao;
+import model.ResultadoLogin;
 import model.Usuario;
 import util.PasswordUtil;
 
@@ -12,31 +13,31 @@ public class LoginFacade {
         this.usuarioDAO = new UsuarioDao();
     }
 
-    public String iniciarSesion(String nombreUsuario, String contrasena) {
+    public ResultadoLogin iniciarSesion(String nombreUsuario, String contrasena) {
 
         // Validar campos vacíos
         if (nombreUsuario == null || nombreUsuario.trim().isEmpty()
                 || contrasena == null || contrasena.trim().isEmpty()) {
 
-            return "CAMPOS_VACIOS";
+            return new ResultadoLogin("CAMPOS_VACIOS");
         }
 
-        // Buscar usuario en SQL Server
+        // Buscar usuario en la base de datos
         Usuario usuario = usuarioDAO.buscarPorUsuario(nombreUsuario.trim());
 
         // Usuario no existe
         if (usuario == null) {
-            return "CREDENCIALES_INCORRECTAS";
+            return new ResultadoLogin("CREDENCIALES_INCORRECTAS");
         }
 
         // Usuario inactivo
         if (!usuario.isEstado()) {
-            return "USUARIO_INACTIVO";
+            return new ResultadoLogin("USUARIO_INACTIVO");
         }
 
         // Usuario bloqueado
         if (usuario.isBloqueado()) {
-            return "USUARIO_BLOQUEADO";
+            return new ResultadoLogin("USUARIO_BLOQUEADO");
         }
 
         // Validar contraseña mediante PBKDF2
@@ -49,15 +50,16 @@ public class LoginFacade {
             int nuevoNumeroIntentos = usuario.getIntentosFallidos() + 1;
 
             if (nuevoNumeroIntentos >= 3) {
-                return "USUARIO_BLOQUEADO";
+                return new ResultadoLogin("USUARIO_BLOQUEADO");
             }
 
-            return "INTENTO_" + nuevoNumeroIntentos;
+            return new ResultadoLogin("INTENTO_" + nuevoNumeroIntentos);
         }
 
         // Login correcto
         usuarioDAO.registrarAccesoCorrecto(usuario.getIdUsuario());
 
-        return "ACCESO_CORRECTO";
+        // Ahora devolvemos el estado Y el usuario autenticado
+        return new ResultadoLogin("ACCESO_CORRECTO", usuario);
     }
 }
