@@ -1,3 +1,4 @@
+
 package mediator;
 
 import command.AbrirModuloCommand;
@@ -33,8 +34,9 @@ public class MenuMediator {
 
             case "clientes":
 
+                // Módulo de Clientes - CRUD
                 return new AbrirModuloCommand(
-                        "/modulo.jsp?modulo=clientes"
+                        "/ClienteController"
                 );
 
 
