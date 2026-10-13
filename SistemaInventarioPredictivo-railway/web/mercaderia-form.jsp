@@ -1,7 +1,11 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
+<%@page import="java.util.List"%>
+<%@page import="java.util.ArrayList"%>
 <%@page import="model.MercaderiaServicio"%>
 <%@page import="model.Inventario"%>
+<%@page import="model.Proveedor"%>
+<%@page import="model.ProveedorMercaderia"%>
 
 <%!
     private String escapar(String texto) {
@@ -16,6 +20,35 @@
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
     }
+
+    private String nombreProveedor(Proveedor proveedor) {
+
+        if (proveedor == null) {
+            return "Proveedor no encontrado";
+        }
+
+        String razonSocial = proveedor.getRazonSocial();
+
+        if (razonSocial != null && !razonSocial.isBlank()) {
+            return razonSocial;
+        }
+
+        String nombres = proveedor.getNombres() == null
+                ? ""
+                : proveedor.getNombres();
+
+        String apellidos = proveedor.getApellidos() == null
+                ? ""
+                : proveedor.getApellidos();
+
+        String nombre = (nombres + " " + apellidos).trim();
+
+        if (!nombre.isBlank()) {
+            return nombre;
+        }
+
+        return "Proveedor #" + proveedor.getIdProveedor();
+    }
 %>
 
 <%
@@ -29,18 +62,14 @@
     String contexto = request.getContextPath();
 
     MercaderiaServicio mercaderia =
-            (MercaderiaServicio)
-            request.getAttribute("mercaderia");
+            (MercaderiaServicio) request.getAttribute("mercaderia");
 
     Inventario inventario =
-            (Inventario)
-            request.getAttribute("inventario");
+            (Inventario) request.getAttribute("inventario");
 
     boolean editando = mercaderia != null;
 
-    String accion = editando
-            ? "actualizar"
-            : "registrar";
+    String accion = editando ? "actualizar" : "registrar";
 
     String titulo = editando
             ? "Editar Mercadería o Servicio"
@@ -71,15 +100,28 @@
             ? mercaderia.getEstado()
             : "Activo";
 
-    boolean esMercaderia =
-            "MERCADERIA".equals(tipo);
+    boolean esMercaderia = "MERCADERIA".equals(tipo);
+
+    List<Proveedor> listaProveedores =
+            (List<Proveedor>) request.getAttribute("listaProveedores");
+
+    if (listaProveedores == null) {
+        listaProveedores = new ArrayList<>();
+    }
+
+    List<ProveedorMercaderia> proveedoresProducto =
+            (List<ProveedorMercaderia>)
+            request.getAttribute("proveedoresProducto");
+
+    if (proveedoresProducto == null) {
+        proveedoresProducto = new ArrayList<>();
+    }
 %>
 
 <!DOCTYPE html>
 <html lang="es">
 
 <head>
-
     <meta charset="UTF-8">
 
     <meta name="viewport"
@@ -88,7 +130,6 @@
     <title><%= escapar(titulo) %></title>
 
     <style>
-
         * {
             margin: 0;
             padding: 0;
@@ -105,7 +146,6 @@
                     transparent 35%
                 ),
                 #09090f;
-
             color: #ffffff;
         }
 
@@ -189,7 +229,7 @@
         }
 
         .form-card {
-            max-width: 850px;
+            max-width: 950px;
             background: #151520;
             border: 1px solid #29293a;
             border-radius: 15px;
@@ -241,14 +281,14 @@
             color: #ffffff;
             font-size: 14px;
             outline: none;
-            transition: 0.2s;
         }
 
         input:focus,
         select:focus,
         textarea:focus {
             border-color: #8b5cf6;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+            box-shadow:
+                0 0 0 3px rgba(139, 92, 246, 0.1);
         }
 
         input:disabled,
@@ -280,7 +320,8 @@
             margin-top: 24px;
         }
 
-        .inventory-box {
+        .inventory-box,
+        .supplier-box {
             margin-top: 25px;
             padding: 22px;
             background: #10101b;
@@ -288,12 +329,14 @@
             border-radius: 11px;
         }
 
-        .inventory-box h3 {
+        .inventory-box h3,
+        .supplier-box h3 {
             font-size: 16px;
             margin-bottom: 12px;
         }
 
-        .inventory-box p {
+        .inventory-box p,
+        .supplier-box p {
             color: #a1a1b5;
             font-size: 13px;
             line-height: 1.7;
@@ -322,7 +365,6 @@
 
         .inventory-stat strong {
             font-size: 23px;
-            color: #ffffff;
         }
 
         .buttons {
@@ -343,7 +385,6 @@
             font-weight: bold;
             cursor: pointer;
             text-align: center;
-            transition: 0.2s;
         }
 
         .btn-primary {
@@ -360,8 +401,19 @@
             color: #e4e4ef;
         }
 
-        .btn-secondary:hover {
-            background: #373750;
+        .btn-success {
+            background: #15803d;
+            color: #ffffff;
+        }
+
+        .btn-danger {
+            background: #991b1b;
+            color: #ffffff;
+        }
+
+        .btn-small {
+            padding: 9px 12px;
+            font-size: 12px;
         }
 
         .badge {
@@ -382,8 +434,45 @@
             color: #d4d4d8;
         }
 
-        @media (max-width: 850px) {
+        .supplier-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            margin-top: 20px;
+        }
 
+        .supplier-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .supplier-table th,
+        .supplier-table td {
+            padding: 13px;
+            border-bottom: 1px solid #303044;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .supplier-table th {
+            color: #c4b5fd;
+            background: #1d1d2d;
+        }
+
+        .supplier-table td {
+            color: #e4e4ef;
+        }
+
+        .empty-message {
+            margin-top: 15px;
+            padding: 16px;
+            background: #191928;
+            border-radius: 9px;
+            color: #a1a1b5;
+            font-size: 13px;
+        }
+
+        @media (max-width: 850px) {
             .layout {
                 flex-direction: column;
             }
@@ -427,26 +516,19 @@
                 grid-column: auto;
             }
 
-            .buttons {
-                flex-direction: column;
-            }
-
+            .buttons,
             .inventory-stats {
                 flex-direction: column;
             }
         }
-
     </style>
-
 </head>
 
 <body>
 
 <div class="layout">
 
-    <!-- =====================================
-         MENU LATERAL
-         ===================================== -->
+    <!-- MENU LATERAL -->
 
     <aside class="sidebar">
 
@@ -490,14 +572,11 @@
 
     </aside>
 
-    <!-- =====================================
-         CONTENIDO PRINCIPAL
-         ===================================== -->
+    <!-- CONTENIDO -->
 
     <main class="content">
 
         <div class="page-header">
-
             <h1><%= escapar(titulo) %></h1>
 
             <p>
@@ -505,7 +584,6 @@
                         ? "Actualiza la información del registro seleccionado."
                         : "Completa los datos para crear un nuevo producto o servicio." %>
             </p>
-
         </div>
 
         <div class="form-card">
@@ -514,9 +592,7 @@
                 Información General
             </div>
 
-            <!-- =====================================
-                 FORMULARIO PRINCIPAL
-                 ===================================== -->
+            <!-- FORMULARIO PRINCIPAL -->
 
             <form method="post"
                   action="<%= contexto %>/MercaderiaServicioController">
@@ -554,15 +630,13 @@
 
                                 <option value="MERCADERIA"
                                     <%= "MERCADERIA".equals(tipo)
-                                            ? "selected"
-                                            : "" %>>
+                                            ? "selected" : "" %>>
                                     Mercadería
                                 </option>
 
                                 <option value="SERVICIO"
                                     <%= "SERVICIO".equals(tipo)
-                                            ? "selected"
-                                            : "" %>>
+                                            ? "selected" : "" %>>
                                     Servicio
                                 </option>
 
@@ -638,7 +712,7 @@
                                id="nombre"
                                name="nombre"
                                maxlength="150"
-                               placeholder="Ejemplo: Laptop Lenovo / Mantenimiento de PC"
+                               placeholder="Ejemplo: Laptop Lenovo"
                                value="<%= escapar(nombre) %>"
                                required>
 
@@ -654,11 +728,11 @@
 
                         <textarea id="descripcion"
                                   name="descripcion"
-                                  placeholder="Ingresa las características del producto o servicio..."><%= escapar(descripcion) %></textarea>
+                                  placeholder="Características del producto o servicio..."><%= escapar(descripcion) %></textarea>
 
                     </div>
 
-                    <!-- PRECIO -->
+                    <!-- PRECIO DE VENTA -->
 
                     <div class="form-group">
 
@@ -684,9 +758,7 @@
 
                 </div>
 
-                <!-- =====================================
-                     INVENTARIO INICIAL
-                     ===================================== -->
+                <!-- INVENTARIO INICIAL -->
 
                 <% if (!editando) { %>
 
@@ -719,11 +791,6 @@
                                        value="0"
                                        required>
 
-                                <span class="help-text">
-                                    Cantidad disponible
-                                    al registrar el producto.
-                                </span>
-
                             </div>
 
                             <div class="form-group">
@@ -742,11 +809,6 @@
                                        value="0"
                                        required>
 
-                                <span class="help-text">
-                                    Cantidad mínima para
-                                    generar una alerta.
-                                </span>
-
                             </div>
 
                         </div>
@@ -755,9 +817,7 @@
 
                 <% } %>
 
-                <!-- =====================================
-                     INFORMACION DE MERCADERIA
-                     ===================================== -->
+                <!-- INFORMACION MERCADERIA -->
 
                 <div id="informacionMercaderia"
                      class="info-box">
@@ -772,9 +832,7 @@
 
                 </div>
 
-                <!-- =====================================
-                     INFORMACION DE SERVICIO
-                     ===================================== -->
+                <!-- INFORMACION SERVICIO -->
 
                 <div id="informacionServicio"
                      class="info-box"
@@ -791,9 +849,7 @@
 
                 </div>
 
-                <!-- =====================================
-                     INVENTARIO EXISTENTE
-                     ===================================== -->
+                <!-- INVENTARIO EXISTENTE -->
 
                 <% if (editando && esMercaderia) { %>
 
@@ -804,30 +860,23 @@
                         <% if (inventario != null) { %>
 
                             <p>
-                                Existencias actuales
-                                del producto:
+                                Existencias actuales del producto:
                             </p>
 
                             <div class="inventory-stats">
 
                                 <div class="inventory-stat">
-
                                     <span>Stock actual</span>
-
                                     <strong>
                                         <%= inventario.getStockActual() %>
                                     </strong>
-
                                 </div>
 
                                 <div class="inventory-stat">
-
                                     <span>Stock mínimo</span>
-
                                     <strong>
                                         <%= inventario.getStockMinimo() %>
                                     </strong>
-
                                 </div>
 
                             </div>
@@ -851,9 +900,7 @@
 
                 <% } %>
 
-                <!-- =====================================
-                     BOTONES
-                     ===================================== -->
+                <!-- BOTONES DEL FORMULARIO PRINCIPAL -->
 
                 <div class="buttons">
 
@@ -875,15 +922,282 @@
 
             </form>
 
+            <!-- ==========================================
+                 PROVEEDORES DEL PRODUCTO
+                 SOLO AL EDITAR MERCADERIA
+                 ========================================== -->
+
+            <% if (editando && esMercaderia) { %>
+
+                <div class="supplier-box">
+
+                    <h3>Proveedores del producto</h3>
+
+                    <p>
+                        Asocia proveedores registrados
+                        y define su precio de compra.
+                    </p>
+
+                    <!-- ASOCIAR PROVEEDOR -->
+
+                    <form method="post"
+                          action="<%= contexto %>/MercaderiaServicioController"
+                          style="margin-top:20px;">
+
+                        <input type="hidden"
+                               name="accion"
+                               value="asociarproveedor">
+
+                        <input type="hidden"
+                               name="idMercaderiaServicio"
+                               value="<%= idMercaderiaServicio %>">
+
+                        <div class="form-grid">
+
+                            <div class="form-group">
+
+                                <label for="idProveedor">
+                                    Seleccionar proveedor
+                                    <span class="required">*</span>
+                                </label>
+
+                                <select id="idProveedor"
+                                        name="idProveedor"
+                                        required>
+
+                                    <option value="">
+                                        -- Selecciona un proveedor --
+                                    </option>
+
+                                    <% for (Proveedor proveedor :
+                                            listaProveedores) { %>
+
+                                        <option value="<%= proveedor.getIdProveedor() %>">
+
+                                            <%= escapar(
+                                                    nombreProveedor(proveedor)
+                                            ) %>
+
+                                            <% if (proveedor.getRuc() != null
+                                                    && !proveedor.getRuc().isBlank()) { %>
+
+                                                - RUC:
+                                                <%= escapar(proveedor.getRuc()) %>
+
+                                            <% } else if (
+                                                    proveedor.getDni() != null
+                                                    && !proveedor.getDni().isBlank()) { %>
+
+                                                - DNI:
+                                                <%= escapar(proveedor.getDni()) %>
+
+                                            <% } %>
+
+                                        </option>
+
+                                    <% } %>
+
+                                </select>
+
+                            </div>
+
+                            <div class="form-group">
+
+                                <label for="precioCompra">
+                                    Precio de compra (S/)
+                                    <span class="required">*</span>
+                                </label>
+
+                                <input type="number"
+                                       id="precioCompra"
+                                       name="precioCompra"
+                                       min="0"
+                                       step="0.01"
+                                       placeholder="0.00"
+                                       required>
+
+                            </div>
+
+                        </div>
+
+                        <% if (listaProveedores.isEmpty()) { %>
+
+                            <div class="empty-message">
+                                No hay proveedores activos disponibles.
+                                Registra o activa un proveedor
+                                desde el módulo Proveedores.
+                            </div>
+
+                        <% } else { %>
+
+                            <div style="margin-top:20px;">
+
+                                <button type="submit"
+                                        class="btn btn-success">
+
+                                    + Asociar proveedor
+
+                                </button>
+
+                            </div>
+
+                        <% } %>
+
+                    </form>
+
+                    <!-- LISTADO DE ASOCIACIONES -->
+
+                    <h3 style="margin-top:35px;">
+                        Proveedores asociados
+                    </h3>
+
+                    <% if (proveedoresProducto.isEmpty()) { %>
+
+                        <div class="empty-message">
+                            Este producto todavía no tiene
+                            proveedores asociados.
+                        </div>
+
+                    <% } else { %>
+
+                        <div class="supplier-table-wrapper">
+
+                            <table class="supplier-table">
+
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Proveedor</th>
+                                        <th>Precio de compra</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody>
+
+                                <% for (ProveedorMercaderia relacion :
+                                        proveedoresProducto) {
+
+                                    String nombreRelacionado =
+                                            "Proveedor #" + relacion.getIdProveedor();
+
+                                    Proveedor proveedorRelacionado =
+                                            null;
+
+                                    for (Proveedor proveedor :
+                                            listaProveedores) {
+
+                                        if (proveedor.getIdProveedor()
+                                                == relacion.getIdProveedor()) {
+
+                                            proveedorRelacionado = proveedor;
+                                            break;
+                                        }
+                                    }
+
+                                    if (proveedorRelacionado != null) {
+                                        nombreRelacionado =
+                                                nombreProveedor(proveedorRelacionado);
+                                    }
+
+                                    boolean relacionActiva =
+                                            "Activo".equalsIgnoreCase(
+                                                    relacion.getEstado()
+                                            );
+                                %>
+
+                                    <tr>
+
+                                        <td>
+                                            <%= relacion.getIdProveedorMercaderia() %>
+                                        </td>
+
+                                        <td>
+                                            <%= escapar(nombreRelacionado) %>
+                                        </td>
+
+                                        <td>
+                                            S/
+                                            <%= relacion.getPrecioCompra() == null
+                                                    ? "0.00"
+                                                    : relacion.getPrecioCompra().toPlainString() %>
+                                        </td>
+
+                                        <td>
+
+                                            <% if (relacionActiva) { %>
+
+                                                <span class="badge badge-active">
+                                                    Activo
+                                                </span>
+
+                                            <% } else { %>
+
+                                                <span class="badge badge-inactive">
+                                                    Inactivo
+                                                </span>
+
+                                            <% } %>
+
+                                        </td>
+
+                                        <td>
+
+                                            <% if (relacionActiva) { %>
+
+                                                <form method="post"
+                                                      action="<%= contexto %>/MercaderiaServicioController"
+                                                      onsubmit="return confirm('¿Desasociar este proveedor?');">
+
+                                                    <input type="hidden"
+                                                           name="accion"
+                                                           value="desasociarproveedor">
+
+                                                    <input type="hidden"
+                                                           name="idProveedorMercaderia"
+                                                           value="<%= relacion.getIdProveedorMercaderia() %>">
+
+                                                    <button type="submit"
+                                                            class="btn btn-danger btn-small">
+                                                        Desasociar
+                                                    </button>
+
+                                                </form>
+
+                                            <% } else { %>
+
+                                                <span class="help-text">
+                                                    Sin acciones
+                                                </span>
+
+                                            <% } %>
+
+                                        </td>
+
+                                    </tr>
+
+                                <% } %>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    <% } %>
+
+                </div>
+
+            <% } %>
+
         </div>
 
     </main>
 
 </div>
 
-<!-- =====================================
-     JAVASCRIPT
-     ===================================== -->
+<!-- JAVASCRIPT -->
 
 <script>
 

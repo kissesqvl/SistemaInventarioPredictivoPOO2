@@ -3,6 +3,7 @@ package controller;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.servlet.ServletException;
@@ -14,12 +15,15 @@ import jakarta.servlet.http.HttpSession;
 
 import model.MercaderiaServicio;
 import model.Inventario;
+import model.Proveedor;
 import model.ProveedorMercaderia;
 
 import repository.MercaderiaServicioRepository;
 import repository.MercaderiaServicioRepositoryImpl;
 import repository.InventarioRepository;
 import repository.InventarioRepositoryImpl;
+import repository.ProveedorRepository;
+import repository.ProveedorRepositoryImpl;
 import repository.ProveedorMercaderiaRepository;
 import repository.ProveedorMercaderiaRepositoryImpl;
 
@@ -36,6 +40,9 @@ public class MercaderiaServicioController extends HttpServlet {
 
     private final ProveedorMercaderiaRepository proveedorRepo =
             new ProveedorMercaderiaRepositoryImpl();
+
+    private final ProveedorRepository proveedorGeneralRepo =
+            new ProveedorRepositoryImpl();
 
     private final MercaderiaRegistroService registroService =
             new MercaderiaRegistroService();
@@ -255,7 +262,7 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // CARGAR INFORMACION DEL LISTADO
+    // DATOS DEL LISTADO
     // ==========================================
 
     private void cargarDatosListado(
@@ -276,7 +283,39 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // MOSTRAR FORMULARIO NUEVO
+    // CARGAR PROVEEDORES ACTIVOS
+    // ==========================================
+
+    private void cargarProveedoresActivos(
+            HttpServletRequest request) {
+
+        List<Proveedor> proveedoresActivos =
+                new ArrayList<>();
+
+        List<Proveedor> proveedores =
+                proveedorGeneralRepo.listar();
+
+        if (proveedores != null) {
+
+            for (Proveedor proveedor : proveedores) {
+
+                if (proveedor != null
+                        && "Activo".equalsIgnoreCase(
+                                proveedor.getEstado())) {
+
+                    proveedoresActivos.add(proveedor);
+                }
+            }
+        }
+
+        request.setAttribute(
+                "listaProveedores",
+                proveedoresActivos
+        );
+    }
+
+    // ==========================================
+    // FORMULARIO NUEVO
     // ==========================================
 
     private void mostrarFormularioNuevo(
@@ -294,7 +333,7 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // MOSTRAR FORMULARIO EDITAR
+    // FORMULARIO EDITAR
     // ==========================================
 
     private void mostrarFormularioEditar(
@@ -340,6 +379,9 @@ public class MercaderiaServicioController extends HttpServlet {
                     "proveedoresProducto",
                     relaciones
             );
+
+            // NUEVO: proveedores disponibles
+            cargarProveedoresActivos(request);
         }
 
         request.getRequestDispatcher("/mercaderia-form.jsp")
@@ -347,7 +389,7 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // REGISTRAR PRODUCTO O SERVICIO
+    // REGISTRAR
     // ==========================================
 
     private void registrar(
@@ -361,7 +403,6 @@ public class MercaderiaServicioController extends HttpServlet {
         int stockInicial = 0;
         int stockMinimo = 0;
 
-        // Solo la mercaderia requiere inventario.
         if ("MERCADERIA".equals(item.getTipo())) {
 
             stockInicial = obtenerEnteroNoNegativo(
@@ -375,8 +416,6 @@ public class MercaderiaServicioController extends HttpServlet {
             );
         }
 
-        // Registra producto e inventario
-        // dentro de una misma transaccion.
         long idGenerado = registroService.registrar(
                 item,
                 stockInicial,
@@ -426,10 +465,7 @@ public class MercaderiaServicioController extends HttpServlet {
 
         item.setIdMercaderiaServicio(id);
 
-        // Conservar el tipo original.
         item.setTipo(actual.getTipo());
-
-        // Conservar el estado actual.
         item.setEstado(actual.getEstado());
 
         if (!mercaderiaRepo.actualizar(item)) {
@@ -517,7 +553,7 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // AUMENTAR O DISMINUIR STOCK
+    // MODIFICAR STOCK
     // ==========================================
 
     private void modificarStock(
@@ -612,9 +648,7 @@ public class MercaderiaServicioController extends HttpServlet {
                 new ProveedorMercaderia();
 
         relacion.setIdProveedor(idProveedor);
-
         relacion.setIdMercaderiaServicio(idProducto);
-
         relacion.setPrecioCompra(precioCompra);
 
         if (!proveedorRepo.registrar(relacion)) {
@@ -665,7 +699,7 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // CONSTRUIR MODELO DESDE FORMULARIO
+    // CONSTRUIR MERCADERIA
     // ==========================================
 
     private MercaderiaServicio construirMercaderia(
@@ -696,14 +730,8 @@ public class MercaderiaServicioController extends HttpServlet {
         MercaderiaServicio item =
                 new MercaderiaServicio();
 
-        item.setTipo(
-                tipo.trim().toUpperCase()
-        );
-
-        item.setNombre(
-                nombre.trim()
-        );
-
+        item.setTipo(tipo.trim().toUpperCase());
+        item.setNombre(nombre.trim());
         item.setDescripcion(descripcion);
         item.setPrecioVenta(precioVenta);
         item.setEstado("Activo");
@@ -840,7 +868,7 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // GUARDAR MENSAJES
+    // MENSAJES
     // ==========================================
 
     private void guardarMensaje(
@@ -853,10 +881,6 @@ public class MercaderiaServicioController extends HttpServlet {
                 mensaje
         );
     }
-
-    // ==========================================
-    // MOSTRAR ERROR
-    // ==========================================
 
     private void mostrarError(
             HttpServletRequest request,
@@ -872,10 +896,6 @@ public class MercaderiaServicioController extends HttpServlet {
 
         redirigirListado(request, response);
     }
-
-    // ==========================================
-    // REDIRIGIR AL LISTADO
-    // ==========================================
 
     private void redirigirListado(
             HttpServletRequest request,
