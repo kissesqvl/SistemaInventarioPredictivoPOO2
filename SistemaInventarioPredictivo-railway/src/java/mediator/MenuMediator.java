@@ -12,18 +12,15 @@ public class MenuMediator {
 
         if (accion == null
                 || accion.trim().isEmpty()) {
-
             return null;
         }
 
-        switch (accion.toLowerCase()) {
+        switch (accion.trim().toLowerCase()) {
 
             case "usuarios":
 
-                // Solo el administrador puede acceder
-                // a Gestión de Usuarios
+                // Solo administradores
                 if (idRol != null && idRol == 1) {
-
                     return new AbrirModuloCommand(
                             "/UsuarioController"
                     );
@@ -31,21 +28,19 @@ public class MenuMediator {
 
                 return null;
 
-
             case "clientes":
 
-                // Módulo de Clientes - CRUD
+                // Módulo 3: Gestión de Clientes
                 return new AbrirModuloCommand(
                         "/ClienteController"
                 );
 
-
             case "proveedores":
 
+                // Módulo 4: Gestión de Proveedores
                 return new AbrirModuloCommand(
-                        "/modulo.jsp?modulo=proveedores"
+                        "/ProveedorController"
                 );
-
 
             case "mercaderia":
 
@@ -53,13 +48,11 @@ public class MenuMediator {
                         "/modulo.jsp?modulo=mercaderia"
                 );
 
-
             case "ventas":
 
                 return new AbrirModuloCommand(
                         "/modulo.jsp?modulo=ventas"
                 );
-
 
             case "reportes":
 
@@ -67,9 +60,7 @@ public class MenuMediator {
                         "/modulo.jsp?modulo=reportes"
                 );
 
-
             default:
-
                 return null;
         }
     }
