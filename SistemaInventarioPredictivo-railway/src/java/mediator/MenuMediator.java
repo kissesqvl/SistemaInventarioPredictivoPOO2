@@ -10,16 +10,18 @@ public class MenuMediator {
             String accion,
             Integer idRol) {
 
-        if (accion == null
-                || accion.trim().isEmpty()) {
+        if (accion == null || accion.trim().isEmpty()) {
             return null;
         }
 
         switch (accion.trim().toLowerCase()) {
 
+            // =====================================
+            // MODULO DE USUARIOS
+            // =====================================
+
             case "usuarios":
 
-                // Solo administradores
                 if (idRol != null && idRol == 1) {
                     return new AbrirModuloCommand(
                             "/UsuarioController"
@@ -28,25 +30,39 @@ public class MenuMediator {
 
                 return null;
 
+            // =====================================
+            // MODULO DE CLIENTES
+            // =====================================
+
             case "clientes":
 
-                // Módulo 3: Gestión de Clientes
                 return new AbrirModuloCommand(
                         "/ClienteController"
                 );
 
+            // =====================================
+            // MODULO DE PROVEEDORES
+            // =====================================
+
             case "proveedores":
 
-                // Módulo 4: Gestión de Proveedores
                 return new AbrirModuloCommand(
                         "/ProveedorController"
                 );
 
+            // =====================================
+            // MODULO DE MERCADERIA Y SERVICIOS
+            // =====================================
+
             case "mercaderia":
 
                 return new AbrirModuloCommand(
-                        "/modulo.jsp?modulo=mercaderia"
+                        "/MercaderiaServicioController"
                 );
+
+            // =====================================
+            // MODULO DE VENTAS
+            // =====================================
 
             case "ventas":
 
@@ -54,11 +70,19 @@ public class MenuMediator {
                         "/modulo.jsp?modulo=ventas"
                 );
 
+            // =====================================
+            // MODULO DE REPORTES
+            // =====================================
+
             case "reportes":
 
                 return new AbrirModuloCommand(
                         "/modulo.jsp?modulo=reportes"
                 );
+
+            // =====================================
+            // ACCION NO RECONOCIDA
+            // =====================================
 
             default:
                 return null;
