@@ -67,7 +67,7 @@ public class MenuMediator {
             case "ventas":
 
                 return new AbrirModuloCommand(
-                        "/modulo.jsp?modulo=ventas"
+                        "/VentaController"
                 );
 
             // =====================================
