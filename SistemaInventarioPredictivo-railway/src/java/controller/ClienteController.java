@@ -78,12 +78,10 @@ public class ClienteController extends HttpServlet {
 
             switch (accion.trim().toLowerCase()) {
 
-                // PANTALLA INICIAL SIN CONSULTAR CLIENTES
                 case "inicio":
                     mostrarInicio(request, response);
                     break;
 
-                // FORMULARIO DE REGISTRO
                 case "nuevo":
                     request.setAttribute("modo", "nuevo");
 
@@ -92,12 +90,10 @@ public class ClienteController extends HttpServlet {
                     ).forward(request, response);
                     break;
 
-                // FORMULARIO DE EDICION
                 case "editar":
                     mostrarEditar(request, response);
                     break;
 
-                // BUSQUEDA PAGINADA
                 case "buscar":
                 case "listar":
                     listarClientes(request, response);
@@ -129,9 +125,6 @@ public class ClienteController extends HttpServlet {
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
-
-        // No realiza consultas a la base de datos.
-        // Muestra las opciones Registrar y Buscar.
 
         request.getRequestDispatcher(
                 "/clientes-inicio.jsp"
@@ -231,7 +224,6 @@ public class ClienteController extends HttpServlet {
 
         texto = texto.trim();
 
-        // PAGINA SOLICITADA
         int pagina = 1;
 
         try {
@@ -248,17 +240,12 @@ public class ClienteController extends HttpServlet {
             }
 
         } catch (NumberFormatException e) {
-
             pagina = 1;
         }
 
         if (pagina < 1) {
             pagina = 1;
         }
-
-        // ======================================
-        // CONTAR REGISTROS
-        // ======================================
 
         long totalRegistros =
                 clienteRepository.contarClientes(texto);
@@ -278,10 +265,6 @@ public class ClienteController extends HttpServlet {
         if (pagina > totalPaginas) {
             pagina = totalPaginas;
         }
-
-        // ======================================
-        // CONSULTAR SOLO 20 REGISTROS
-        // ======================================
 
         List<Cliente> clientes;
 
@@ -303,39 +286,12 @@ public class ClienteController extends HttpServlet {
                     );
         }
 
-        // ======================================
-        // DATOS PARA clientes.jsp
-        // ======================================
-
-        request.setAttribute(
-                "clientes",
-                clientes
-        );
-
-        request.setAttribute(
-                "textoBusqueda",
-                texto
-        );
-
-        request.setAttribute(
-                "paginaActual",
-                pagina
-        );
-
-        request.setAttribute(
-                "totalPaginas",
-                totalPaginas
-        );
-
-        request.setAttribute(
-                "totalRegistros",
-                totalRegistros
-        );
-
-        request.setAttribute(
-                "tamanioPagina",
-                TAMANIO_PAGINA
-        );
+        request.setAttribute("clientes", clientes);
+        request.setAttribute("textoBusqueda", texto);
+        request.setAttribute("paginaActual", pagina);
+        request.setAttribute("totalPaginas", totalPaginas);
+        request.setAttribute("totalRegistros", totalRegistros);
+        request.setAttribute("tamanioPagina", TAMANIO_PAGINA);
 
         request.getRequestDispatcher(
                 "/clientes.jsp"
@@ -416,6 +372,9 @@ public class ClienteController extends HttpServlet {
         String apellidos = request.getParameter("apellidos");
         String dni = request.getParameter("dni");
 
+        // NUEVO: RECUPERAR CORREO DEL FORMULARIO
+        String correo = request.getParameter("correo");
+
         if (nombres == null || nombres.isBlank()
                 || apellidos == null || apellidos.isBlank()
                 || dni == null || dni.isBlank()) {
@@ -433,11 +392,41 @@ public class ClienteController extends HttpServlet {
             return;
         }
 
+        // VALIDAR CORREO OPCIONAL
+        if (correo != null && !correo.isBlank()) {
+
+            correo = correo.trim();
+
+            if (correo.length() > 150
+                    || !correo.matches(
+                            "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+                    )) {
+
+                sesion.setAttribute(
+                        "mensajeError",
+                        "El correo electronico no es valido."
+                );
+
+                response.sendRedirect(
+                        request.getContextPath()
+                        + "/ClienteController"
+                );
+
+                return;
+            }
+
+        } else {
+            correo = null;
+        }
+
         Cliente cliente = new Cliente();
 
         cliente.setNombres(nombres.trim());
         cliente.setApellidos(apellidos.trim());
         cliente.setDni(dni.trim());
+
+        // NUEVO: ASIGNAR CORREO AL CLIENTE
+        cliente.setCorreo(correo);
 
         try {
 
@@ -531,7 +520,6 @@ public class ClienteController extends HttpServlet {
                         : "No se pudo guardar el cliente."
         );
 
-        // REGRESAR A LA PANTALLA DE DOS BOTONES
         response.sendRedirect(
                 request.getContextPath() + "/ClienteController"
         );

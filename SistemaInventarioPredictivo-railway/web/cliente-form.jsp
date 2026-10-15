@@ -56,6 +56,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
@@ -302,6 +303,10 @@
             border-color: #8b5cf6;
         }
 
+        .campo input::placeholder {
+            color: #6f6f82;
+        }
+
         .acciones {
             display: flex;
             gap: 12px;
@@ -410,6 +415,7 @@
             <div class="avatar">
                 <%= escapar(usuario.substring(0, 1).toUpperCase()) %>
             </div>
+
             <h3><%= escapar(usuario) %></h3>
             <span><%= nombreRol %></span>
         </div>
@@ -507,6 +513,7 @@
 
                     <div class="form-grid">
 
+                        <!-- NOMBRES -->
                         <div class="campo">
                             <label for="nombres">
                                 Nombres *
@@ -520,6 +527,7 @@
                                    value="<%= editar ? escapar(cliente.getNombres()) : "" %>">
                         </div>
 
+                        <!-- APELLIDOS -->
                         <div class="campo">
                             <label for="apellidos">
                                 Apellidos *
@@ -533,6 +541,7 @@
                                    value="<%= editar ? escapar(cliente.getApellidos()) : "" %>">
                         </div>
 
+                        <!-- DNI -->
                         <div class="campo">
                             <label for="dni">
                                 DNI *
@@ -546,6 +555,22 @@
                                    value="<%= editar ? escapar(cliente.getDni()) : "" %>">
                         </div>
 
+                        <!-- CORREO ELECTRONICO -->
+                        <div class="campo">
+                            <label for="correo">
+                                Correo electrónico
+                            </label>
+
+                            <input type="email"
+                                   id="correo"
+                                   name="correo"
+                                   maxlength="150"
+                                   autocomplete="email"
+                                   placeholder="cliente@ejemplo.com"
+                                   value="<%= editar ? escapar(cliente.getCorreo()) : "" %>">
+                        </div>
+
+                        <!-- SEXO -->
                         <div class="campo">
                             <label for="idSexo">
                                 Sexo
@@ -553,10 +578,12 @@
 
                             <select id="idSexo" name="idSexo">
                                 <option value="">Seleccionar</option>
+
                                 <option value="1"
                                     <%= editar && Integer.valueOf(1).equals(cliente.getIdSexo()) ? "selected" : "" %>>
                                     Masculino
                                 </option>
+
                                 <option value="2"
                                     <%= editar && Integer.valueOf(2).equals(cliente.getIdSexo()) ? "selected" : "" %>>
                                     Femenino
@@ -564,6 +591,7 @@
                             </select>
                         </div>
 
+                        <!-- ESTADO CIVIL -->
                         <div class="campo">
                             <label for="idEstadoCivil">
                                 Estado Civil
@@ -571,6 +599,7 @@
 
                             <select id="idEstadoCivil"
                                     name="idEstadoCivil">
+
                                 <option value="">Seleccionar</option>
 
                                 <option value="1"
@@ -595,13 +624,16 @@
                             </select>
                         </div>
 
+                        <!-- ESTADO SOLO EN EDICION -->
                         <% if (editar) { %>
+
                         <div class="campo">
                             <label for="estado">
                                 Estado
                             </label>
 
                             <select id="estado" name="estado">
+
                                 <option value="Activo"
                                     <%= "Activo".equalsIgnoreCase(cliente.getEstado()) ? "selected" : "" %>>
                                     Activo
@@ -611,8 +643,10 @@
                                     <%= "Inactivo".equalsIgnoreCase(cliente.getEstado()) ? "selected" : "" %>>
                                     Inactivo
                                 </option>
+
                             </select>
                         </div>
+
                         <% } %>
 
                     </div>
@@ -637,6 +671,7 @@
 
                 <p class="nota">
                     Los campos marcados con * son obligatorios.
+                    El correo electrónico es opcional.
                     El registro se almacenará en las tablas
                     DatosPersonales y Cliente.
                 </p>

@@ -58,6 +58,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
         ) {
             if (rs.next()) {
                 BigDecimal total = rs.getBigDecimal(1);
+
                 return total == null
                         ? BigDecimal.ZERO
                         : total;
@@ -197,7 +198,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
     }
 
     // ==========================================
-    // 7. PRODUCTOS Y SERVICIOS MÁS VENDIDOS
+    // 7. PRODUCTOS Y SERVICIOS MAS VENDIDOS
     // ==========================================
 
     @Override
@@ -247,6 +248,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
 
     // ==========================================
     // 8. REPORTE DE CLIENTES
+    // CORREGIDO: INCLUYE CORREO ELECTRONICO
     // ==========================================
 
     @Override
@@ -259,6 +261,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "c.idDatosPersonales AS idDatosPersonales, " +
                 "CONCAT_WS(' ', dp.nombres, dp.apellidos) AS nombre, " +
                 "dp.dni AS dni, " +
+                "c.correo AS correo, " +
                 "COUNT(v.idVenta) AS cantidadCompras, " +
                 "COALESCE(SUM(v.total), 0) AS montoComprado " +
                 "FROM Cliente c " +
@@ -272,7 +275,8 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "c.idDatosPersonales, " +
                 "dp.nombres, " +
                 "dp.apellidos, " +
-                "dp.dni " +
+                "dp.dni, " +
+                "c.correo " +
                 "ORDER BY cantidadCompras DESC, montoComprado DESC";
 
         try (
@@ -319,7 +323,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
     }
 
     // ==========================================
-    // MÉTODO AUXILIAR
+    // METODO AUXILIAR
     // CONVERTIR RESULTSET A LISTA DE MAPAS
     // ==========================================
 

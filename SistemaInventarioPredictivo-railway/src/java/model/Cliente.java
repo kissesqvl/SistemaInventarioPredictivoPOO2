@@ -8,6 +8,7 @@ public class Cliente {
     private String nombres;
     private String apellidos;
     private String dni;
+    private String correo;
     private Integer idSexo;
     private Integer idEstadoCivil;
     private String estado;
@@ -53,6 +54,18 @@ public class Cliente {
 
     public void setDni(String dni) {
         this.dni = dni;
+    }
+
+    // ==========================================
+    // CORREO ELECTRÓNICO DEL CLIENTE
+    // ==========================================
+
+    public String getCorreo() {
+        return correo;
+    }
+
+    public void setCorreo(String correo) {
+        this.correo = correo;
     }
 
     public Integer getIdSexo() {

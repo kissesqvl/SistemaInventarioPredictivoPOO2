@@ -15,9 +15,14 @@ import util.ConexionBD;
 
 public class ClienteRepositoryImpl implements ClienteRepository {
 
+    // ==========================================
+    // CONSULTA BASE
+    // ==========================================
+
     private static final String SELECT_BASE = """
         SELECT c.idCliente,
                c.idDatosPersonales,
+               c.correo,
                d.nombres,
                d.apellidos,
                d.dni,
@@ -29,42 +34,73 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             ON c.idDatosPersonales = d.idDatosPersonales
         """;
 
+    // ==========================================
+    // FILTRO DE BUSQUEDA
+    // ==========================================
+
     private static final String FILTRO_BUSQUEDA = """
         WHERE (
             d.nombres LIKE ?
             OR d.apellidos LIKE ?
             OR d.dni LIKE ?
+            OR c.correo LIKE ?
         )
         """;
+
+    // ==========================================
+    // CONVERTIR RESULTSET A CLIENTE
+    // ==========================================
 
     private Cliente convertirCliente(ResultSet rs)
             throws SQLException {
 
         Cliente cliente = new Cliente();
 
-        cliente.setIdCliente(rs.getLong("idCliente"));
+        cliente.setIdCliente(
+                rs.getLong("idCliente")
+        );
+
         cliente.setIdDatosPersonales(
                 rs.getLong("idDatosPersonales")
         );
-        cliente.setNombres(rs.getString("nombres"));
-        cliente.setApellidos(rs.getString("apellidos"));
-        cliente.setDni(rs.getString("dni"));
+
+        cliente.setNombres(
+                rs.getString("nombres")
+        );
+
+        cliente.setApellidos(
+                rs.getString("apellidos")
+        );
+
+        cliente.setDni(
+                rs.getString("dni")
+        );
+
+        cliente.setCorreo(
+                rs.getString("correo")
+        );
 
         int sexo = rs.getInt("idSexo");
-        cliente.setIdSexo(rs.wasNull() ? null : sexo);
+
+        cliente.setIdSexo(
+                rs.wasNull() ? null : sexo
+        );
 
         int estadoCivil = rs.getInt("idEstadoCivil");
+
         cliente.setIdEstadoCivil(
                 rs.wasNull() ? null : estadoCivil
         );
 
-        cliente.setEstado(rs.getString("estado"));
+        cliente.setEstado(
+                rs.getString("estado")
+        );
 
         return cliente;
     }
 
     // ==========================================
-    // LISTAR (COMPATIBILIDAD)
+    // LISTAR
     // ==========================================
 
     @Override
@@ -75,10 +111,12 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         String sql = SELECT_BASE
                 + " ORDER BY c.idCliente DESC";
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps =
+                    conexion.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery()
+        ) {
 
             while (rs.next()) {
                 clientes.add(convertirCliente(rs));
@@ -94,7 +132,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     // ==========================================
-    // BUSCAR (COMPATIBILIDAD)
+    // BUSCAR
     // ==========================================
 
     @Override
@@ -110,15 +148,18 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                 + (texto == null ? "" : texto.trim())
                 + "%";
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps =
+                    conexion.prepareStatement(sql)
+        ) {
 
-            ps.setString(1, filtro);
-            ps.setString(2, filtro);
-            ps.setString(3, filtro);
+            for (int i = 1; i <= 4; i++) {
+                ps.setString(i, filtro);
+            }
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 while (rs.next()) {
                     clientes.add(convertirCliente(rs));
                 }
@@ -145,21 +186,25 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         List<Cliente> clientes = new ArrayList<>();
 
         int paginaSegura = Math.max(1, pagina);
+
         int tamanioSeguro = Math.max(
-                1, Math.min(100, tamanioPagina)
+                1,
+                Math.min(100, tamanioPagina)
         );
 
-        long offset = ((long) paginaSegura - 1)
-                * tamanioSeguro;
+        long offset =
+                ((long) paginaSegura - 1) * tamanioSeguro;
 
         String sql = SELECT_BASE + """
             ORDER BY c.idCliente DESC
             LIMIT ? OFFSET ?
             """;
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps =
+                    conexion.prepareStatement(sql)
+        ) {
 
             ps.setInt(1, tamanioSeguro);
             ps.setLong(2, offset);
@@ -197,12 +242,14 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         List<Cliente> clientes = new ArrayList<>();
 
         int paginaSegura = Math.max(1, pagina);
+
         int tamanioSeguro = Math.max(
-                1, Math.min(100, tamanioPagina)
+                1,
+                Math.min(100, tamanioPagina)
         );
 
-        long offset = ((long) paginaSegura - 1)
-                * tamanioSeguro;
+        long offset =
+                ((long) paginaSegura - 1) * tamanioSeguro;
 
         String sql = SELECT_BASE
                 + FILTRO_BUSQUEDA
@@ -213,15 +260,18 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
         String filtro = "%" + texto.trim() + "%";
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps =
+                    conexion.prepareStatement(sql)
+        ) {
 
-            ps.setString(1, filtro);
-            ps.setString(2, filtro);
-            ps.setString(3, filtro);
-            ps.setInt(4, tamanioSeguro);
-            ps.setLong(5, offset);
+            for (int i = 1; i <= 4; i++) {
+                ps.setString(i, filtro);
+            }
+
+            ps.setInt(5, tamanioSeguro);
+            ps.setLong(6, offset);
 
             try (ResultSet rs = ps.executeQuery()) {
 
@@ -257,17 +307,21 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             """
             + (conFiltro ? FILTRO_BUSQUEDA : "");
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps =
+                    conexion.prepareStatement(sql)
+        ) {
 
             if (conFiltro) {
 
-                String filtro = "%" + texto.trim() + "%";
+                String filtro = "%"
+                        + texto.trim()
+                        + "%";
 
-                ps.setString(1, filtro);
-                ps.setString(2, filtro);
-                ps.setString(3, filtro);
+                for (int i = 1; i <= 4; i++) {
+                    ps.setString(i, filtro);
+                }
             }
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -296,9 +350,11 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         String sql = SELECT_BASE
                 + " WHERE c.idCliente = ?";
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps =
+                    conexion.prepareStatement(sql)
+        ) {
 
             ps.setLong(1, idCliente);
 
@@ -319,7 +375,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     // ==========================================
-    // REGISTRAR
+    // REGISTRAR CLIENTE
     // ==========================================
 
     @Override
@@ -329,15 +385,30 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
         String sqlDatos = """
             INSERT INTO DatosPersonales
-            (nombres, apellidos, dni, idSexo,
-             idEstadoCivil, fechaCreacion,
-             fechaActualizacion, usuarioRegistro, estado)
-            VALUES (?, ?, ?, ?, ?, NOW(), NOW(), ?, ?)
+            (
+                nombres,
+                apellidos,
+                dni,
+                idSexo,
+                idEstadoCivil,
+                fechaCreacion,
+                fechaActualizacion,
+                usuarioRegistro,
+                estado
+            )
+            VALUES (
+                ?, ?, ?, ?, ?,
+                NOW(), NOW(), ?, ?
+            )
             """;
 
         String sqlCliente = """
-            INSERT INTO Cliente (idDatosPersonales)
-            VALUES (?)
+            INSERT INTO Cliente
+            (
+                idDatosPersonales,
+                correo
+            )
+            VALUES (?, ?)
             """;
 
         try (Connection conexion = ConexionBD.getConexion()) {
@@ -348,11 +419,15 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
                 long idDatosPersonales;
 
-                try (PreparedStatement ps =
-                        conexion.prepareStatement(
-                                sqlDatos,
-                                Statement.RETURN_GENERATED_KEYS
-                        )) {
+                // GUARDAR DATOS PERSONALES
+
+                try (
+                    PreparedStatement ps =
+                            conexion.prepareStatement(
+                                    sqlDatos,
+                                    Statement.RETURN_GENERATED_KEYS
+                            )
+                ) {
 
                     ps.setString(1, cliente.getNombres());
                     ps.setString(2, cliente.getApellidos());
@@ -395,10 +470,20 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                     }
                 }
 
-                try (PreparedStatement ps =
-                        conexion.prepareStatement(sqlCliente)) {
+                // GUARDAR CLIENTE Y CORREO
+
+                try (
+                    PreparedStatement ps =
+                            conexion.prepareStatement(sqlCliente)
+                ) {
 
                     ps.setLong(1, idDatosPersonales);
+
+                    asignarCorreo(
+                            ps,
+                            2,
+                            cliente.getCorreo()
+                    );
 
                     if (ps.executeUpdate() != 1) {
                         throw new SQLException(
@@ -408,11 +493,13 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                 }
 
                 conexion.commit();
+
                 return true;
 
             } catch (SQLException e) {
 
                 conexion.rollback();
+
                 throw e;
             }
 
@@ -424,13 +511,13 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     // ==========================================
-    // ACTUALIZAR
+    // ACTUALIZAR CLIENTE
     // ==========================================
 
     @Override
     public boolean actualizar(Cliente cliente) {
 
-        String sql = """
+        String sqlDatos = """
             UPDATE DatosPersonales
             SET nombres = ?,
                 apellidos = ?,
@@ -446,33 +533,88 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             )
             """;
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+        String sqlCorreo = """
+            UPDATE Cliente
+            SET correo = ?
+            WHERE idCliente = ?
+            """;
 
-            ps.setString(1, cliente.getNombres());
-            ps.setString(2, cliente.getApellidos());
-            ps.setString(3, cliente.getDni());
+        try (Connection conexion = ConexionBD.getConexion()) {
 
-            if (cliente.getIdSexo() == null) {
-                ps.setNull(4, Types.INTEGER);
-            } else {
-                ps.setInt(4, cliente.getIdSexo());
+            conexion.setAutoCommit(false);
+
+            try {
+
+                int filasDatos;
+
+                // ACTUALIZAR DATOS PERSONALES
+
+                try (
+                    PreparedStatement ps =
+                            conexion.prepareStatement(sqlDatos)
+                ) {
+
+                    ps.setString(1, cliente.getNombres());
+                    ps.setString(2, cliente.getApellidos());
+                    ps.setString(3, cliente.getDni());
+
+                    if (cliente.getIdSexo() == null) {
+                        ps.setNull(4, Types.INTEGER);
+                    } else {
+                        ps.setInt(4, cliente.getIdSexo());
+                    }
+
+                    if (cliente.getIdEstadoCivil() == null) {
+                        ps.setNull(5, Types.INTEGER);
+                    } else {
+                        ps.setInt(
+                                5,
+                                cliente.getIdEstadoCivil()
+                        );
+                    }
+
+                    ps.setString(6, cliente.getEstado());
+                    ps.setLong(7, cliente.getIdCliente());
+
+                    filasDatos = ps.executeUpdate();
+                }
+
+                if (filasDatos == 0) {
+                    conexion.rollback();
+                    return false;
+                }
+
+                // ACTUALIZAR CORREO
+
+                try (
+                    PreparedStatement ps =
+                            conexion.prepareStatement(sqlCorreo)
+                ) {
+
+                    asignarCorreo(
+                            ps,
+                            1,
+                            cliente.getCorreo()
+                    );
+
+                    ps.setLong(
+                            2,
+                            cliente.getIdCliente()
+                    );
+
+                    ps.executeUpdate();
+                }
+
+                conexion.commit();
+
+                return true;
+
+            } catch (SQLException e) {
+
+                conexion.rollback();
+
+                throw e;
             }
-
-            if (cliente.getIdEstadoCivil() == null) {
-                ps.setNull(5, Types.INTEGER);
-            } else {
-                ps.setInt(
-                        5,
-                        cliente.getIdEstadoCivil()
-                );
-            }
-
-            ps.setString(6, cliente.getEstado());
-            ps.setLong(7, cliente.getIdCliente());
-
-            return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
             throw new IllegalStateException(
@@ -499,9 +641,11 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             )
             """;
 
-        try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps =
+                    conexion.prepareStatement(sql)
+        ) {
 
             ps.setLong(1, idCliente);
 
@@ -510,6 +654,31 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         } catch (SQLException e) {
             throw new IllegalStateException(
                     "Error al desactivar el cliente.", e
+            );
+        }
+    }
+
+    // ==========================================
+    // CORREO OPCIONAL
+    // ==========================================
+
+    private void asignarCorreo(
+            PreparedStatement ps,
+            int indice,
+            String correo) throws SQLException {
+
+        if (correo == null || correo.isBlank()) {
+
+            ps.setNull(
+                    indice,
+                    Types.VARCHAR
+            );
+
+        } else {
+
+            ps.setString(
+                    indice,
+                    correo.trim()
             );
         }
     }
