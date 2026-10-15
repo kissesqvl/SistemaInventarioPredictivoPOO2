@@ -10,24 +10,48 @@ public class Proveedor {
 
     private Long idDatosPersonales;
 
-    // Persona natural
+    // ==========================================
+    // PERSONA NATURAL
+    // ==========================================
+
     private String nombres;
     private String apellidos;
     private String dni;
     private Integer idSexo;
     private Integer idEstadoCivil;
 
-    // Empresa
+    // ==========================================
+    // EMPRESA
+    // ==========================================
+
     private String ruc;
     private String razonSocial;
     private String nombreComercial;
 
-    // Datos generales
+    // ==========================================
+    // DATOS DE CONTACTO
+    // ==========================================
+
+    private String correo;
+    private String telefono;
+
+    // ==========================================
+    // DATOS GENERALES
+    // ==========================================
+
     private String estado;
     private LocalDateTime fechaCreacion;
 
+    // ==========================================
+    // CONSTRUCTOR
+    // ==========================================
+
     public Proveedor() {
     }
+
+    // ==========================================
+    // ID PROVEEDOR
+    // ==========================================
 
     public long getIdProveedor() {
         return idProveedor;
@@ -37,6 +61,10 @@ public class Proveedor {
         this.idProveedor = idProveedor;
     }
 
+    // ==========================================
+    // TIPO PROVEEDOR
+    // ==========================================
+
     public String getTipoProveedor() {
         return tipoProveedor;
     }
@@ -44,6 +72,10 @@ public class Proveedor {
     public void setTipoProveedor(String tipoProveedor) {
         this.tipoProveedor = tipoProveedor;
     }
+
+    // ==========================================
+    // ID DATOS PERSONALES
+    // ==========================================
 
     public Long getIdDatosPersonales() {
         return idDatosPersonales;
@@ -53,6 +85,10 @@ public class Proveedor {
         this.idDatosPersonales = idDatosPersonales;
     }
 
+    // ==========================================
+    // NOMBRES
+    // ==========================================
+
     public String getNombres() {
         return nombres;
     }
@@ -60,6 +96,10 @@ public class Proveedor {
     public void setNombres(String nombres) {
         this.nombres = nombres;
     }
+
+    // ==========================================
+    // APELLIDOS
+    // ==========================================
 
     public String getApellidos() {
         return apellidos;
@@ -69,6 +109,10 @@ public class Proveedor {
         this.apellidos = apellidos;
     }
 
+    // ==========================================
+    // DNI
+    // ==========================================
+
     public String getDni() {
         return dni;
     }
@@ -76,6 +120,10 @@ public class Proveedor {
     public void setDni(String dni) {
         this.dni = dni;
     }
+
+    // ==========================================
+    // SEXO
+    // ==========================================
 
     public Integer getIdSexo() {
         return idSexo;
@@ -85,6 +133,10 @@ public class Proveedor {
         this.idSexo = idSexo;
     }
 
+    // ==========================================
+    // ESTADO CIVIL
+    // ==========================================
+
     public Integer getIdEstadoCivil() {
         return idEstadoCivil;
     }
@@ -92,6 +144,10 @@ public class Proveedor {
     public void setIdEstadoCivil(Integer idEstadoCivil) {
         this.idEstadoCivil = idEstadoCivil;
     }
+
+    // ==========================================
+    // RUC
+    // ==========================================
 
     public String getRuc() {
         return ruc;
@@ -101,6 +157,10 @@ public class Proveedor {
         this.ruc = ruc;
     }
 
+    // ==========================================
+    // RAZON SOCIAL
+    // ==========================================
+
     public String getRazonSocial() {
         return razonSocial;
     }
@@ -108,6 +168,10 @@ public class Proveedor {
     public void setRazonSocial(String razonSocial) {
         this.razonSocial = razonSocial;
     }
+
+    // ==========================================
+    // NOMBRE COMERCIAL
+    // ==========================================
 
     public String getNombreComercial() {
         return nombreComercial;
@@ -117,6 +181,34 @@ public class Proveedor {
         this.nombreComercial = nombreComercial;
     }
 
+    // ==========================================
+    // CORREO ELECTRONICO - NUEVO
+    // ==========================================
+
+    public String getCorreo() {
+        return correo;
+    }
+
+    public void setCorreo(String correo) {
+        this.correo = correo;
+    }
+
+    // ==========================================
+    // TELEFONO - NUEVO
+    // ==========================================
+
+    public String getTelefono() {
+        return telefono;
+    }
+
+    public void setTelefono(String telefono) {
+        this.telefono = telefono;
+    }
+
+    // ==========================================
+    // ESTADO
+    // ==========================================
+
     public String getEstado() {
         return estado;
     }
@@ -124,6 +216,10 @@ public class Proveedor {
     public void setEstado(String estado) {
         this.estado = estado;
     }
+
+    // ==========================================
+    // FECHA DE CREACION
+    // ==========================================
 
     public LocalDateTime getFechaCreacion() {
         return fechaCreacion;

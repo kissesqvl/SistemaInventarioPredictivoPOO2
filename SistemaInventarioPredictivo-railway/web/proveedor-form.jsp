@@ -48,8 +48,7 @@
             ? proveedor.getTipoProveedor()
             : "NATURAL";
 
-    boolean natural =
-            "NATURAL".equals(tipoActual);
+    boolean natural = "NATURAL".equals(tipoActual);
 
     String titulo = editar
             ? "Editar Proveedor"
@@ -258,6 +257,7 @@
             color: #9292a5;
             font-size: 14px;
             margin-bottom: 30px;
+            line-height: 1.6;
         }
 
         .panel {
@@ -316,6 +316,18 @@
 
         .seccion-datos {
             margin-top: 26px;
+        }
+
+        .seccion-contacto {
+            margin-top: 30px;
+            padding-top: 25px;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+
+        .ayuda {
+            color: #9292a5;
+            font-size: 11px;
+            line-height: 1.5;
         }
 
         .acciones {
@@ -430,7 +442,9 @@
             <div class="avatar">
                 <%= escapar(usuario.substring(0, 1).toUpperCase()) %>
             </div>
+
             <h3><%= escapar(usuario) %></h3>
+
             <span>
                 <%= idRol != null && idRol == 1
                         ? "Administrador" : "Usuario" %>
@@ -492,6 +506,7 @@
 
         <header class="header">
             <h1><%= titulo %></h1>
+
             <div class="header-usuario">
                 ● <%= escapar(usuario) %>
             </div>
@@ -501,16 +516,18 @@
 
             <div class="titulo">
                 <h2><%= titulo %></h2>
+
                 <p>
-                    Registra o actualiza los datos de un
-                    proveedor, ya sea persona natural o empresa.
+                    Registra o actualiza los datos de un proveedor,
+                    ya sea persona natural o empresa.
                 </p>
             </div>
 
             <div class="panel">
 
                 <form method="post"
-                      action="<%= contexto %>/ProveedorController">
+                      action="<%= contexto %>/ProveedorController"
+                      accept-charset="UTF-8">
 
                     <input type="hidden"
                            name="accion"
@@ -521,6 +538,10 @@
                            name="idProveedor"
                            value="<%= proveedor.getIdProveedor() %>">
                     <% } %>
+
+                    <!-- ============================= -->
+                    <!-- TIPO DE PROVEEDOR -->
+                    <!-- ============================= -->
 
                     <div class="seccion-titulo">
                         Tipo de proveedor
@@ -560,12 +581,16 @@
                             <select id="estado" name="estado">
 
                                 <option value="Activo"
-                                    <%= "Activo".equalsIgnoreCase(proveedor.getEstado()) ? "selected" : "" %>>
+                                    <%= "Activo".equalsIgnoreCase(
+                                            proveedor.getEstado()
+                                        ) ? "selected" : "" %>>
                                     Activo
                                 </option>
 
                                 <option value="Inactivo"
-                                    <%= "Inactivo".equalsIgnoreCase(proveedor.getEstado()) ? "selected" : "" %>>
+                                    <%= "Inactivo".equalsIgnoreCase(
+                                            proveedor.getEstado()
+                                        ) ? "selected" : "" %>>
                                     Inactivo
                                 </option>
 
@@ -575,6 +600,10 @@
                         <% } %>
 
                     </div>
+
+                    <!-- ============================= -->
+                    <!-- DATOS DE PERSONA NATURAL -->
+                    <!-- ============================= -->
 
                     <div id="datosNatural" class="seccion-datos">
 
@@ -593,7 +622,9 @@
                                        id="nombres"
                                        name="nombres"
                                        maxlength="80"
-                                       value="<%= editar ? escapar(proveedor.getNombres()) : "" %>">
+                                       value="<%= editar
+                                               ? escapar(proveedor.getNombres())
+                                               : "" %>">
                             </div>
 
                             <div class="campo">
@@ -605,7 +636,9 @@
                                        id="apellidos"
                                        name="apellidos"
                                        maxlength="80"
-                                       value="<%= editar ? escapar(proveedor.getApellidos()) : "" %>">
+                                       value="<%= editar
+                                               ? escapar(proveedor.getApellidos())
+                                               : "" %>">
                             </div>
 
                             <div class="campo">
@@ -620,7 +653,9 @@
                                        pattern="[0-9]{8}"
                                        inputmode="numeric"
                                        title="Ingrese un DNI de 8 dígitos"
-                                       value="<%= editar ? escapar(proveedor.getDni()) : "" %>">
+                                       value="<%= editar
+                                               ? escapar(proveedor.getDni())
+                                               : "" %>">
                             </div>
 
                             <div class="campo">
@@ -635,12 +670,20 @@
                                     </option>
 
                                     <option value="1"
-                                        <%= editar && seleccionado(proveedor.getIdSexo(), 1) ? "selected" : "" %>>
+                                        <%= editar
+                                                && seleccionado(
+                                                        proveedor.getIdSexo(), 1
+                                                   )
+                                                ? "selected" : "" %>>
                                         Masculino
                                     </option>
 
                                     <option value="2"
-                                        <%= editar && seleccionado(proveedor.getIdSexo(), 2) ? "selected" : "" %>>
+                                        <%= editar
+                                                && seleccionado(
+                                                        proveedor.getIdSexo(), 2
+                                                   )
+                                                ? "selected" : "" %>>
                                         Femenino
                                     </option>
 
@@ -660,22 +703,38 @@
                                     </option>
 
                                     <option value="1"
-                                        <%= editar && seleccionado(proveedor.getIdEstadoCivil(), 1) ? "selected" : "" %>>
+                                        <%= editar
+                                                && seleccionado(
+                                                        proveedor.getIdEstadoCivil(), 1
+                                                   )
+                                                ? "selected" : "" %>>
                                         Soltero(a)
                                     </option>
 
                                     <option value="2"
-                                        <%= editar && seleccionado(proveedor.getIdEstadoCivil(), 2) ? "selected" : "" %>>
+                                        <%= editar
+                                                && seleccionado(
+                                                        proveedor.getIdEstadoCivil(), 2
+                                                   )
+                                                ? "selected" : "" %>>
                                         Casado(a)
                                     </option>
 
                                     <option value="3"
-                                        <%= editar && seleccionado(proveedor.getIdEstadoCivil(), 3) ? "selected" : "" %>>
+                                        <%= editar
+                                                && seleccionado(
+                                                        proveedor.getIdEstadoCivil(), 3
+                                                   )
+                                                ? "selected" : "" %>>
                                         Divorciado(a)
                                     </option>
 
                                     <option value="4"
-                                        <%= editar && seleccionado(proveedor.getIdEstadoCivil(), 4) ? "selected" : "" %>>
+                                        <%= editar
+                                                && seleccionado(
+                                                        proveedor.getIdEstadoCivil(), 4
+                                                   )
+                                                ? "selected" : "" %>>
                                         Viudo(a)
                                     </option>
 
@@ -684,6 +743,10 @@
 
                         </div>
                     </div>
+
+                    <!-- ============================= -->
+                    <!-- DATOS DE EMPRESA -->
+                    <!-- ============================= -->
 
                     <div id="datosEmpresa" class="seccion-datos">
 
@@ -705,7 +768,9 @@
                                        pattern="[0-9]{11}"
                                        inputmode="numeric"
                                        title="Ingrese un RUC de 11 dígitos"
-                                       value="<%= editar ? escapar(proveedor.getRuc()) : "" %>">
+                                       value="<%= editar
+                                               ? escapar(proveedor.getRuc())
+                                               : "" %>">
                             </div>
 
                             <div class="campo">
@@ -717,7 +782,9 @@
                                        id="razonSocial"
                                        name="razonSocial"
                                        maxlength="150"
-                                       value="<%= editar ? escapar(proveedor.getRazonSocial()) : "" %>">
+                                       value="<%= editar
+                                               ? escapar(proveedor.getRazonSocial())
+                                               : "" %>">
                             </div>
 
                             <div class="campo">
@@ -729,19 +796,89 @@
                                        id="nombreComercial"
                                        name="nombreComercial"
                                        maxlength="150"
-                                       value="<%= editar ? escapar(proveedor.getNombreComercial()) : "" %>">
+                                       value="<%= editar
+                                               ? escapar(proveedor.getNombreComercial())
+                                               : "" %>">
                             </div>
 
                         </div>
                     </div>
 
+                    <!-- ============================= -->
+                    <!-- NUEVO: DATOS DE CONTACTO -->
+                    <!-- ============================= -->
+
+                    <div class="seccion-contacto">
+
+                        <div class="seccion-titulo">
+                            Datos de contacto
+                        </div>
+
+                        <div class="form-grid">
+
+                            <div class="campo">
+
+                                <label for="correo">
+                                    Correo electrónico
+                                </label>
+
+                                <input type="email"
+                                       id="correo"
+                                       name="correo"
+                                       maxlength="150"
+                                       autocomplete="email"
+                                       placeholder="ejemplo@correo.com"
+                                       value="<%= editar
+                                               ? escapar(proveedor.getCorreo())
+                                               : "" %>">
+
+                                <span class="ayuda">
+                                    Correo de contacto del proveedor.
+                                </span>
+
+                            </div>
+
+                            <div class="campo">
+
+                                <label for="telefono">
+                                    Teléfono
+                                </label>
+
+                                <input type="tel"
+                                       id="telefono"
+                                       name="telefono"
+                                       maxlength="20"
+                                       autocomplete="tel"
+                                       pattern="[0-9+() \-]+"
+                                       title="Ingrese un teléfono válido"
+                                       placeholder="987654321"
+                                       value="<%= editar
+                                               ? escapar(proveedor.getTelefono())
+                                               : "" %>">
+
+                                <span class="ayuda">
+                                    Número de teléfono o celular.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- ============================= -->
+                    <!-- ACCIONES -->
+                    <!-- ============================= -->
+
                     <div class="acciones">
 
                         <button type="submit"
                                 class="btn btn-primary">
+
                             <%= editar
                                     ? "Guardar Cambios"
                                     : "Registrar Proveedor" %>
+
                         </button>
 
                         <a href="<%= contexto %>/ProveedorController"
@@ -756,14 +893,16 @@
                 <p class="nota">
                     Los campos marcados con * son obligatorios.
                     Los datos de personas naturales se relacionan
-                    con DatosPersonales y los de empresas se
-                    almacenan en Proveedor.
+                    con DatosPersonales. Los datos de empresas
+                    y la información de contacto se almacenan
+                    en la tabla Proveedor.
                 </p>
 
             </div>
 
         </main>
     </section>
+
 </div>
 
 <script>
@@ -771,23 +910,39 @@
 
     function cambiarTipo() {
 
-        const tipo = document.getElementById("tipoProveedor").value;
+        const tipo = document.getElementById(
+                "tipoProveedor"
+        ).value;
 
-        const datosNatural = document.getElementById("datosNatural");
-        const datosEmpresa = document.getElementById("datosEmpresa");
+        const datosNatural = document.getElementById(
+                "datosNatural"
+        );
+
+        const datosEmpresa = document.getElementById(
+                "datosEmpresa"
+        );
 
         const natural = tipo === "NATURAL";
 
-        datosNatural.classList.toggle("oculto", !natural);
-        datosEmpresa.classList.toggle("oculto", natural);
-
-        const camposNatural = datosNatural.querySelectorAll(
-            "input, select"
+        datosNatural.classList.toggle(
+                "oculto",
+                !natural
         );
 
-        const camposEmpresa = datosEmpresa.querySelectorAll(
-            "input, select"
+        datosEmpresa.classList.toggle(
+                "oculto",
+                natural
         );
+
+        const camposNatural =
+                datosNatural.querySelectorAll(
+                        "input, select"
+                );
+
+        const camposEmpresa =
+                datosEmpresa.querySelectorAll(
+                        "input, select"
+                );
 
         camposNatural.forEach(campo => {
             campo.disabled = !natural;
@@ -797,34 +952,60 @@
             campo.disabled = natural;
         });
 
-        document.getElementById("nombres").required = natural;
-        document.getElementById("apellidos").required = natural;
-        document.getElementById("dni").required = natural;
+        document.getElementById(
+                "nombres"
+        ).required = natural;
 
-        document.getElementById("ruc").required = !natural;
-        document.getElementById("razonSocial").required = !natural;
+        document.getElementById(
+                "apellidos"
+        ).required = natural;
+
+        document.getElementById(
+                "dni"
+        ).required = natural;
+
+        document.getElementById(
+                "ruc"
+        ).required = !natural;
+
+        document.getElementById(
+                "razonSocial"
+        ).required = !natural;
+
+        // Correo y teléfono permanecen habilitados
+        // tanto para NATURAL como para EMPRESA.
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    document.addEventListener(
+            "DOMContentLoaded",
+            function() {
 
-        const tipoProveedor =
-                document.getElementById("tipoProveedor");
+                const tipoProveedor =
+                        document.getElementById(
+                                "tipoProveedor"
+                        );
 
-        if (esEdicion) {
-            tipoProveedor.disabled = true;
+                if (esEdicion) {
 
-            // Un campo deshabilitado no se envía en el POST.
-            // Agregamos uno oculto para conservar el tipo.
-            const oculto = document.createElement("input");
-            oculto.type = "hidden";
-            oculto.name = "tipoProveedor";
-            oculto.value = tipoProveedor.value;
+                    tipoProveedor.disabled = true;
 
-            tipoProveedor.form.appendChild(oculto);
-        }
+                    // Los campos deshabilitados no
+                    // se envían en el POST.
+                    const oculto =
+                            document.createElement("input");
 
-        cambiarTipo();
-    });
+                    oculto.type = "hidden";
+                    oculto.name = "tipoProveedor";
+                    oculto.value = tipoProveedor.value;
+
+                    tipoProveedor.form.appendChild(
+                            oculto
+                    );
+                }
+
+                cambiarTipo();
+            }
+    );
 </script>
 
 </body>

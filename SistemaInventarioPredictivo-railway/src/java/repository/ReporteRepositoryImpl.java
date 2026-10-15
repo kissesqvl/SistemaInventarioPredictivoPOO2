@@ -248,7 +248,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
 
     // ==========================================
     // 8. REPORTE DE CLIENTES
-    // CORREGIDO: INCLUYE CORREO ELECTRONICO
+    // MANTIENE EL CORREO ELECTRONICO
     // ==========================================
 
     @Override
@@ -290,6 +290,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
 
     // ==========================================
     // 9. REPORTE DE PROVEEDORES
+    // CORREGIDO: CORREO Y TELEFONO
     // ==========================================
 
     @Override
@@ -306,6 +307,11 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "p.nombreComercial AS nombreComercial, " +
                 "CONCAT_WS(' ', dp.nombres, dp.apellidos) AS nombre, " +
                 "dp.dni AS dni, " +
+
+                // NUEVOS CAMPOS
+                "p.correo AS correo, " +
+                "p.telefono AS telefono, " +
+
                 "p.estado AS estado, " +
                 "p.fechaCreacion AS fechaCreacion " +
                 "FROM Proveedor p " +

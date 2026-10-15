@@ -167,13 +167,11 @@ public class ProveedorController extends HttpServlet {
             }
         }
 
-        // Contar registros segun el filtro.
         long totalRegistros =
                 proveedorRepository.contarProveedores(
                         texto
                 );
 
-        // Calcular el total de paginas.
         long totalPaginasLong = Math.max(
                 1L,
                 (totalRegistros + TAMANIO_PAGINA - 1)
@@ -185,7 +183,6 @@ public class ProveedorController extends HttpServlet {
                 totalPaginasLong
         );
 
-        // Evitar consultar paginas inexistentes.
         if (pagina > totalPaginas) {
             pagina = totalPaginas;
         }
@@ -389,9 +386,9 @@ public class ProveedorController extends HttpServlet {
         try {
 
             String tipoProveedor =
-                    limpiar(request.getParameter(
-                            "tipoProveedor"
-                    )).toUpperCase();
+                    limpiar(
+                            request.getParameter("tipoProveedor")
+                    ).toUpperCase();
 
             if (!"NATURAL".equals(tipoProveedor)
                     && !"EMPRESA".equals(tipoProveedor)) {
@@ -403,11 +400,55 @@ public class ProveedorController extends HttpServlet {
 
             Proveedor proveedor = new Proveedor();
 
-            proveedor.setTipoProveedor(
-                    tipoProveedor
+            proveedor.setTipoProveedor(tipoProveedor);
+
+            // ==========================================
+            // NUEVO: CORREO Y TELEFONO
+            // ==========================================
+
+            String correo = limpiar(
+                    request.getParameter("correo")
             );
 
+            String telefono = limpiar(
+                    request.getParameter("telefono")
+            );
+
+            if (!correo.isBlank()) {
+
+                if (correo.length() > 150
+                        || !correo.matches(
+                                "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+                        )) {
+
+                    throw new IllegalArgumentException(
+                            "El correo electronico no es valido."
+                    );
+                }
+            }
+
+            if (!telefono.isBlank()) {
+
+                if (telefono.length() > 20
+                        || !telefono.matches("[0-9+()\\s-]+")) {
+
+                    throw new IllegalArgumentException(
+                            "El telefono no es valido."
+                    );
+                }
+            }
+
+            proveedor.setCorreo(
+                    correo.isBlank() ? null : correo
+            );
+
+            proveedor.setTelefono(
+                    telefono.isBlank() ? null : telefono
+            );
+
+            // ==========================================
             // PERSONA NATURAL
+            // ==========================================
 
             if ("NATURAL".equals(tipoProveedor)) {
 
@@ -450,7 +491,9 @@ public class ProveedorController extends HttpServlet {
 
             } else {
 
+                // ==========================================
                 // EMPRESA
+                // ==========================================
 
                 String ruc = limpiar(
                         request.getParameter("ruc")
@@ -483,7 +526,9 @@ public class ProveedorController extends HttpServlet {
                 );
             }
 
+            // ==========================================
             // VALIDACIONES DE EDICION
+            // ==========================================
 
             if (editar) {
 
@@ -492,6 +537,7 @@ public class ProveedorController extends HttpServlet {
                 );
 
                 if (idProveedor <= 0) {
+
                     throw new IllegalArgumentException(
                             "Identificador de proveedor no valido."
                     );
@@ -533,16 +579,16 @@ public class ProveedorController extends HttpServlet {
                     );
                 }
 
-                proveedor.setEstado(
-                        estado
-                );
+                proveedor.setEstado(estado);
 
             } else {
 
                 proveedor.setEstado("Activo");
             }
 
+            // ==========================================
             // GUARDAR EN MYSQL
+            // ==========================================
 
             boolean correcto;
 
