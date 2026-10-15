@@ -21,6 +21,8 @@ import repository.ProveedorRepositoryImpl;
 )
 public class ProveedorController extends HttpServlet {
 
+    private static final int TAMANIO_PAGINA = 20;
+
     private ProveedorRepository proveedorRepository;
 
     @Override
@@ -29,7 +31,7 @@ public class ProveedorController extends HttpServlet {
     }
 
     // ==========================================
-    // VALIDAR SESIÓN
+    // VALIDAR SESION
     // ==========================================
 
     private HttpSession validarSesion(
@@ -53,7 +55,7 @@ public class ProveedorController extends HttpServlet {
     }
 
     // ==========================================
-    // GET: LISTAR, BUSCAR Y FORMULARIOS
+    // GET: INICIO, BUSCAR Y FORMULARIOS
     // ==========================================
 
     @Override
@@ -69,12 +71,16 @@ public class ProveedorController extends HttpServlet {
         String accion = request.getParameter("accion");
 
         if (accion == null || accion.isBlank()) {
-            accion = "listar";
+            accion = "inicio";
         }
 
         try {
 
-            switch (accion.toLowerCase()) {
+            switch (accion.trim().toLowerCase()) {
+
+                case "inicio":
+                    mostrarInicio(request, response);
+                    break;
 
                 case "nuevo":
                     request.setAttribute("modo", "nuevo");
@@ -89,16 +95,12 @@ public class ProveedorController extends HttpServlet {
                     break;
 
                 case "buscar":
-                    listarProveedores(
-                            request, response, true
-                    );
+                case "listar":
+                    listarProveedores(request, response);
                     break;
 
-                case "listar":
                 default:
-                    listarProveedores(
-                            request, response, false
-                    );
+                    mostrarInicio(request, response);
                     break;
             }
 
@@ -110,13 +112,194 @@ public class ProveedorController extends HttpServlet {
 
             response.sendError(
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "No se pudo consultar la información de proveedores."
+                    "No se pudo consultar la informacion de proveedores."
             );
         }
     }
 
     // ==========================================
-    // POST: REGISTRAR, ACTUALIZAR Y DESACTIVAR
+    // PANTALLA INICIAL
+    // ==========================================
+
+    private void mostrarInicio(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.getRequestDispatcher(
+                "/proveedores-inicio.jsp"
+        ).forward(request, response);
+    }
+
+    // ==========================================
+    // LISTAR Y BUSCAR CON PAGINACION
+    // ==========================================
+
+    private void listarProveedores(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String texto = limpiar(
+                request.getParameter("texto")
+        );
+
+        int pagina = 1;
+
+        String parametroPagina =
+                request.getParameter("pagina");
+
+        if (parametroPagina != null
+                && !parametroPagina.isBlank()) {
+
+            try {
+
+                pagina = Integer.parseInt(
+                        parametroPagina
+                );
+
+                if (pagina < 1) {
+                    pagina = 1;
+                }
+
+            } catch (NumberFormatException e) {
+                pagina = 1;
+            }
+        }
+
+        // Contar registros segun el filtro.
+        long totalRegistros =
+                proveedorRepository.contarProveedores(
+                        texto
+                );
+
+        // Calcular el total de paginas.
+        long totalPaginasLong = Math.max(
+                1L,
+                (totalRegistros + TAMANIO_PAGINA - 1)
+                        / TAMANIO_PAGINA
+        );
+
+        int totalPaginas = (int) Math.min(
+                Integer.MAX_VALUE,
+                totalPaginasLong
+        );
+
+        // Evitar consultar paginas inexistentes.
+        if (pagina > totalPaginas) {
+            pagina = totalPaginas;
+        }
+
+        List<Proveedor> proveedores;
+
+        if (texto.isBlank()) {
+
+            proveedores =
+                    proveedorRepository.listarPaginado(
+                            pagina,
+                            TAMANIO_PAGINA
+                    );
+
+        } else {
+
+            proveedores =
+                    proveedorRepository.buscarPaginado(
+                            texto,
+                            pagina,
+                            TAMANIO_PAGINA
+                    );
+        }
+
+        request.setAttribute(
+                "proveedores",
+                proveedores
+        );
+
+        request.setAttribute(
+                "textoBusqueda",
+                texto
+        );
+
+        request.setAttribute(
+                "paginaActual",
+                pagina
+        );
+
+        request.setAttribute(
+                "totalPaginas",
+                totalPaginas
+        );
+
+        request.setAttribute(
+                "totalRegistros",
+                totalRegistros
+        );
+
+        request.setAttribute(
+                "tamanioPagina",
+                TAMANIO_PAGINA
+        );
+
+        request.getRequestDispatcher(
+                "/proveedores.jsp"
+        ).forward(request, response);
+    }
+
+    // ==========================================
+    // MOSTRAR FORMULARIO DE EDICION
+    // ==========================================
+
+    private void mostrarEditar(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        long idProveedor;
+
+        try {
+
+            idProveedor = Long.parseLong(
+                    request.getParameter("id")
+            );
+
+            if (idProveedor <= 0) {
+                throw new NumberFormatException();
+            }
+
+        } catch (NumberFormatException e) {
+
+            redirigirBusqueda(request, response);
+            return;
+        }
+
+        Proveedor proveedor =
+                proveedorRepository.buscarPorId(
+                        idProveedor
+                );
+
+        if (proveedor == null) {
+
+            redirigirBusqueda(request, response);
+            return;
+        }
+
+        request.setAttribute(
+                "proveedorEditar",
+                proveedor
+        );
+
+        request.setAttribute(
+                "modo",
+                "editar"
+        );
+
+        request.getRequestDispatcher(
+                "/proveedor-form.jsp"
+        ).forward(request, response);
+    }
+
+    // ==========================================
+    // POST: REGISTRAR, ACTUALIZAR, DESACTIVAR
     // ==========================================
 
     @Override
@@ -136,35 +319,44 @@ public class ProveedorController extends HttpServlet {
 
         String accion = request.getParameter("accion");
 
-        if (accion == null) {
-            redirigirListado(request, response);
+        if (accion == null || accion.isBlank()) {
+
+            redirigirInicio(request, response);
             return;
         }
 
         try {
 
-            switch (accion.toLowerCase()) {
+            switch (accion.trim().toLowerCase()) {
 
                 case "registrar":
                     guardarProveedor(
-                            request, response, sesion, false
+                            request,
+                            response,
+                            sesion,
+                            false
                     );
                     break;
 
                 case "actualizar":
                     guardarProveedor(
-                            request, response, sesion, true
+                            request,
+                            response,
+                            sesion,
+                            true
                     );
                     break;
 
                 case "eliminar":
                     desactivarProveedor(
-                            request, response, sesion
+                            request,
+                            response,
+                            sesion
                     );
                     break;
 
                 default:
-                    redirigirListado(request, response);
+                    redirigirInicio(request, response);
                     break;
             }
 
@@ -176,98 +368,11 @@ public class ProveedorController extends HttpServlet {
 
             sesion.setAttribute(
                     "mensajeErrorProveedor",
-                    "No se pudo completar la operación en MySQL."
+                    "No se pudo completar la operacion en MySQL."
             );
 
-            redirigirListado(request, response);
+            redirigirInicio(request, response);
         }
-    }
-
-    // ==========================================
-    // LISTAR Y BUSCAR
-    // ==========================================
-
-    private void listarProveedores(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            boolean buscar)
-            throws ServletException, IOException {
-
-        String texto = request.getParameter("texto");
-
-        List<Proveedor> proveedores;
-
-        if (buscar
-                && texto != null
-                && !texto.isBlank()) {
-
-            proveedores =
-                    proveedorRepository.buscar(texto);
-
-        } else {
-
-            proveedores =
-                    proveedorRepository.listar();
-        }
-
-        request.setAttribute(
-                "proveedores", proveedores
-        );
-
-        request.setAttribute(
-                "textoBusqueda",
-                texto == null ? "" : texto
-        );
-
-        request.getRequestDispatcher(
-                "/proveedores.jsp"
-        ).forward(request, response);
-    }
-
-    // ==========================================
-    // MOSTRAR FORMULARIO DE EDICIÓN
-    // ==========================================
-
-    private void mostrarEditar(
-            HttpServletRequest request,
-            HttpServletResponse response)
-            throws ServletException, IOException {
-
-        long idProveedor;
-
-        try {
-
-            idProveedor = Long.parseLong(
-                    request.getParameter("id")
-            );
-
-        } catch (NumberFormatException e) {
-
-            redirigirListado(request, response);
-            return;
-        }
-
-        Proveedor proveedor =
-                proveedorRepository.buscarPorId(
-                        idProveedor
-                );
-
-        if (proveedor == null) {
-            redirigirListado(request, response);
-            return;
-        }
-
-        request.setAttribute(
-                "proveedorEditar", proveedor
-        );
-
-        request.setAttribute(
-                "modo", "editar"
-        );
-
-        request.getRequestDispatcher(
-                "/proveedor-form.jsp"
-        ).forward(request, response);
     }
 
     // ==========================================
@@ -292,13 +397,17 @@ public class ProveedorController extends HttpServlet {
                     && !"EMPRESA".equals(tipoProveedor)) {
 
                 throw new IllegalArgumentException(
-                        "Tipo de proveedor no válido."
+                        "Tipo de proveedor no valido."
                 );
             }
 
             Proveedor proveedor = new Proveedor();
 
-            proveedor.setTipoProveedor(tipoProveedor);
+            proveedor.setTipoProveedor(
+                    tipoProveedor
+            );
+
+            // PERSONA NATURAL
 
             if ("NATURAL".equals(tipoProveedor)) {
 
@@ -319,7 +428,7 @@ public class ProveedorController extends HttpServlet {
                         || !dni.matches("\\d{8}")) {
 
                     throw new IllegalArgumentException(
-                            "Datos de persona natural no válidos."
+                            "Datos de persona natural no validos."
                     );
                 }
 
@@ -341,6 +450,8 @@ public class ProveedorController extends HttpServlet {
 
             } else {
 
+                // EMPRESA
+
                 String ruc = limpiar(
                         request.getParameter("ruc")
                 );
@@ -357,16 +468,22 @@ public class ProveedorController extends HttpServlet {
                         || razonSocial.isBlank()) {
 
                     throw new IllegalArgumentException(
-                            "Datos de empresa no válidos."
+                            "Datos de empresa no validos."
                     );
                 }
 
                 proveedor.setRuc(ruc);
-                proveedor.setRazonSocial(razonSocial);
+
+                proveedor.setRazonSocial(
+                        razonSocial
+                );
+
                 proveedor.setNombreComercial(
                         nombreComercial
                 );
             }
+
+            // VALIDACIONES DE EDICION
 
             if (editar) {
 
@@ -374,12 +491,19 @@ public class ProveedorController extends HttpServlet {
                         request.getParameter("idProveedor")
                 );
 
+                if (idProveedor <= 0) {
+                    throw new IllegalArgumentException(
+                            "Identificador de proveedor no valido."
+                    );
+                }
+
                 Proveedor existente =
                         proveedorRepository.buscarPorId(
                                 idProveedor
                         );
 
                 if (existente == null) {
+
                     throw new IllegalArgumentException(
                             "El proveedor no existe."
                     );
@@ -393,7 +517,9 @@ public class ProveedorController extends HttpServlet {
                     );
                 }
 
-                proveedor.setIdProveedor(idProveedor);
+                proveedor.setIdProveedor(
+                        idProveedor
+                );
 
                 String estado = limpiar(
                         request.getParameter("estado")
@@ -403,16 +529,20 @@ public class ProveedorController extends HttpServlet {
                         && !"Inactivo".equals(estado)) {
 
                     throw new IllegalArgumentException(
-                            "Estado no válido."
+                            "Estado no valido."
                     );
                 }
 
-                proveedor.setEstado(estado);
+                proveedor.setEstado(
+                        estado
+                );
 
             } else {
 
                 proveedor.setEstado("Activo");
             }
+
+            // GUARDAR EN MYSQL
 
             boolean correcto;
 
@@ -442,18 +572,18 @@ public class ProveedorController extends HttpServlet {
                             ? (editar
                                 ? "Proveedor actualizado correctamente."
                                 : "Proveedor registrado correctamente.")
-                            : "No se pudo guardar el proveedor. Verifica que el DNI o RUC no esté registrado."
+                            : "No se pudo guardar el proveedor. Verifica que el DNI o RUC no este registrado."
             );
 
         } catch (IllegalArgumentException e) {
 
             sesion.setAttribute(
                     "mensajeErrorProveedor",
-                    "Datos inválidos: " + e.getMessage()
+                    "Datos invalidos: " + e.getMessage()
             );
         }
 
-        redirigirListado(request, response);
+        redirigirInicio(request, response);
     }
 
     // ==========================================
@@ -471,6 +601,10 @@ public class ProveedorController extends HttpServlet {
             long idProveedor = Long.parseLong(
                     request.getParameter("idProveedor")
             );
+
+            if (idProveedor <= 0) {
+                throw new NumberFormatException();
+            }
 
             boolean correcto =
                     proveedorRepository.eliminar(
@@ -490,15 +624,15 @@ public class ProveedorController extends HttpServlet {
 
             sesion.setAttribute(
                     "mensajeErrorProveedor",
-                    "Identificador de proveedor no válido."
+                    "Identificador de proveedor no valido."
             );
         }
 
-        redirigirListado(request, response);
+        redirigirInicio(request, response);
     }
 
     // ==========================================
-    // MÉTODOS AUXILIARES
+    // METODOS AUXILIARES
     // ==========================================
 
     private Integer convertirEntero(String texto) {
@@ -507,14 +641,16 @@ public class ProveedorController extends HttpServlet {
             return null;
         }
 
-        return Integer.valueOf(texto.trim());
+        return Integer.valueOf(
+                texto.trim()
+        );
     }
 
     private String limpiar(String texto) {
         return texto == null ? "" : texto.trim();
     }
 
-    private void redirigirListado(
+    private void redirigirInicio(
             HttpServletRequest request,
             HttpServletResponse response)
             throws IOException {
@@ -522,6 +658,17 @@ public class ProveedorController extends HttpServlet {
         response.sendRedirect(
                 request.getContextPath()
                 + "/ProveedorController"
+        );
+    }
+
+    private void redirigirBusqueda(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/ProveedorController?accion=buscar"
         );
     }
 }

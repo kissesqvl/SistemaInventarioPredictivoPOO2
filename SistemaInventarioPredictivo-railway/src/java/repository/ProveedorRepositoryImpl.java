@@ -35,6 +35,21 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             ON p.idDatosPersonales = d.idDatosPersonales
         """;
 
+    private static final String FILTRO_BUSQUEDA = """
+        WHERE (
+            d.nombres LIKE ?
+            OR d.apellidos LIKE ?
+            OR d.dni LIKE ?
+            OR p.ruc LIKE ?
+            OR p.razonSocial LIKE ?
+            OR p.nombreComercial LIKE ?
+        )
+        """;
+
+    // ==========================================
+    // CONVERTIR RESULTSET A PROVEEDOR
+    // ==========================================
+
     private Proveedor convertirProveedor(ResultSet rs)
             throws SQLException {
 
@@ -55,9 +70,11 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
         );
 
         proveedor.setRuc(rs.getString("ruc"));
+
         proveedor.setRazonSocial(
                 rs.getString("razonSocial")
         );
+
         proveedor.setNombreComercial(
                 rs.getString("nombreComercial")
         );
@@ -77,17 +94,23 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
         proveedor.setDni(rs.getString("dni"));
 
         int sexo = rs.getInt("idSexo");
+
         proveedor.setIdSexo(
                 rs.wasNull() ? null : sexo
         );
 
         int estadoCivil = rs.getInt("idEstadoCivil");
+
         proveedor.setIdEstadoCivil(
                 rs.wasNull() ? null : estadoCivil
         );
 
         return proveedor;
     }
+
+    // ==========================================
+    // LISTAR TODOS - COMPATIBILIDAD
+    // ==========================================
 
     @Override
     public List<Proveedor> listar() {
@@ -115,20 +138,18 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
         return proveedores;
     }
 
+    // ==========================================
+    // BUSCAR - COMPATIBILIDAD
+    // ==========================================
+
     @Override
     public List<Proveedor> buscar(String texto) {
 
         List<Proveedor> proveedores = new ArrayList<>();
 
-        String sql = SELECT_BASE + """
-            WHERE d.nombres LIKE ?
-               OR d.apellidos LIKE ?
-               OR d.dni LIKE ?
-               OR p.ruc LIKE ?
-               OR p.razonSocial LIKE ?
-               OR p.nombreComercial LIKE ?
-            ORDER BY p.idProveedor DESC
-            """;
+        String sql = SELECT_BASE
+                + FILTRO_BUSQUEDA
+                + " ORDER BY p.idProveedor DESC";
 
         String filtro = "%"
                 + (texto == null ? "" : texto.trim())
@@ -143,6 +164,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             }
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 while (rs.next()) {
                     proveedores.add(convertirProveedor(rs));
                 }
@@ -156,6 +178,171 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
 
         return proveedores;
     }
+
+    // ==========================================
+    // LISTAR PAGINADO
+    // ==========================================
+
+    @Override
+    public List<Proveedor> listarPaginado(
+            int pagina,
+            int tamanioPagina) {
+
+        List<Proveedor> proveedores = new ArrayList<>();
+
+        int paginaSegura = Math.max(1, pagina);
+
+        int tamanioSeguro = Math.max(
+                1,
+                Math.min(100, tamanioPagina)
+        );
+
+        long offset =
+                ((long) paginaSegura - 1) * tamanioSeguro;
+
+        String sql = SELECT_BASE + """
+            ORDER BY p.idProveedor DESC
+            LIMIT ? OFFSET ?
+            """;
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            ps.setInt(1, tamanioSeguro);
+            ps.setLong(2, offset);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+                    proveedores.add(convertirProveedor(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Error al listar proveedores paginados.", e
+            );
+        }
+
+        return proveedores;
+    }
+
+    // ==========================================
+    // BUSCAR PAGINADO
+    // ==========================================
+
+    @Override
+    public List<Proveedor> buscarPaginado(
+            String texto,
+            int pagina,
+            int tamanioPagina) {
+
+        if (texto == null || texto.isBlank()) {
+            return listarPaginado(
+                    pagina,
+                    tamanioPagina
+            );
+        }
+
+        List<Proveedor> proveedores = new ArrayList<>();
+
+        int paginaSegura = Math.max(1, pagina);
+
+        int tamanioSeguro = Math.max(
+                1,
+                Math.min(100, tamanioPagina)
+        );
+
+        long offset =
+                ((long) paginaSegura - 1) * tamanioSeguro;
+
+        String sql = SELECT_BASE
+                + FILTRO_BUSQUEDA
+                + """
+                    ORDER BY p.idProveedor DESC
+                    LIMIT ? OFFSET ?
+                    """;
+
+        String filtro = "%" + texto.trim() + "%";
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            for (int i = 1; i <= 6; i++) {
+                ps.setString(i, filtro);
+            }
+
+            ps.setInt(7, tamanioSeguro);
+            ps.setLong(8, offset);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+                    proveedores.add(convertirProveedor(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Error al buscar proveedores paginados.", e
+            );
+        }
+
+        return proveedores;
+    }
+
+    // ==========================================
+    // CONTAR PROVEEDORES
+    // ==========================================
+
+    @Override
+    public long contarProveedores(String texto) {
+
+        boolean conFiltro =
+                texto != null && !texto.isBlank();
+
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM Proveedor p
+            LEFT JOIN DatosPersonales d
+                ON p.idDatosPersonales = d.idDatosPersonales
+            """
+            + (conFiltro ? FILTRO_BUSQUEDA : "");
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            if (conFiltro) {
+
+                String filtro = "%" + texto.trim() + "%";
+
+                for (int i = 1; i <= 6; i++) {
+                    ps.setString(i, filtro);
+                }
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getLong("total");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Error al contar proveedores.", e
+            );
+        }
+
+        return 0;
+    }
+
+    // ==========================================
+    // BUSCAR POR ID
+    // ==========================================
 
     @Override
     public Proveedor buscarPorId(long idProveedor) {
@@ -185,6 +372,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
         return null;
     }
 
+    // ==========================================
+    // BUSCAR DATOS PERSONALES POR DNI
+    // ==========================================
+
     private Long buscarDatosPersonalesPorDni(
             Connection conexion,
             String dni) throws SQLException {
@@ -202,6 +393,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             ps.setString(1, dni);
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 if (rs.next()) {
                     return rs.getLong("idDatosPersonales");
                 }
@@ -210,6 +402,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
 
         return null;
     }
+
+    // ==========================================
+    // VERIFICAR PROVEEDOR NATURAL EXISTENTE
+    // ==========================================
 
     private boolean existeProveedorNatural(
             Connection conexion,
@@ -232,6 +428,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             }
         }
     }
+
+    // ==========================================
+    // VERIFICAR RUC EXISTENTE
+    // ==========================================
 
     private boolean existeRuc(
             Connection conexion,
@@ -258,6 +458,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
         }
     }
 
+    // ==========================================
+    // INSERTAR DATOS PERSONALES
+    // ==========================================
+
     private long insertarDatosPersonales(
             Connection conexion,
             Proveedor proveedor,
@@ -282,7 +486,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             ps.setString(2, proveedor.getApellidos());
             ps.setString(3, proveedor.getDni());
 
-            asignarEntero(ps, 4, proveedor.getIdSexo());
+            asignarEntero(
+                    ps, 4, proveedor.getIdSexo()
+            );
+
             asignarEntero(
                     ps, 5, proveedor.getIdEstadoCivil()
             );
@@ -299,7 +506,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
 
                 if (!claves.next()) {
                     throw new SQLException(
-                            "No se generó el ID de datos personales."
+                            "No se genero el ID de datos personales."
                     );
                 }
 
@@ -307,6 +514,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             }
         }
     }
+
+    // ==========================================
+    // ASIGNAR CAMPOS OPCIONALES
+    // ==========================================
 
     private void asignarEntero(
             PreparedStatement ps,
@@ -344,6 +555,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
         );
     }
 
+    // ==========================================
+    // REGISTRAR PROVEEDOR
+    // ==========================================
+
     @Override
     public boolean registrar(
             Proveedor proveedor,
@@ -367,6 +582,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             conexion.setAutoCommit(false);
 
             try {
+
                 Long idDatosPersonales = null;
 
                 if (esNatural(proveedor)) {
@@ -443,10 +659,14 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
 
                     if (esEmpresa(proveedor)) {
 
-                        ps.setString(3, proveedor.getRuc());
+                        ps.setString(
+                                3, proveedor.getRuc()
+                        );
+
                         ps.setString(
                                 4, proveedor.getRazonSocial()
                         );
+
                         ps.setString(
                                 5, proveedor.getNombreComercial()
                         );
@@ -460,7 +680,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
 
                     if (ps.executeUpdate() != 1) {
                         throw new SQLException(
-                                "No se registró el proveedor."
+                                "No se registro el proveedor."
                         );
                     }
                 }
@@ -469,6 +689,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
                 return true;
 
             } catch (SQLException e) {
+
                 conexion.rollback();
                 throw e;
             }
@@ -479,6 +700,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             );
         }
     }
+
+    // ==========================================
+    // ACTUALIZAR PROVEEDOR
+    // ==========================================
 
     @Override
     public boolean actualizar(Proveedor proveedor) {
@@ -493,6 +718,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             conexion.setAutoCommit(false);
 
             try {
+
                 Proveedor actual =
                         buscarPorIdEnConexion(
                                 conexion,
@@ -504,8 +730,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
                     return false;
                 }
 
-                // No permitimos cambiar el tipo de proveedor
-                // después de su registro.
+                // No se permite cambiar el tipo.
                 if (!actual.getTipoProveedor().equals(
                         proveedor.getTipoProveedor())) {
 
@@ -558,9 +783,11 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
                         ps.setString(
                                 1, proveedor.getNombres()
                         );
+
                         ps.setString(
                                 2, proveedor.getApellidos()
                         );
+
                         ps.setString(
                                 3, proveedor.getDni()
                         );
@@ -568,6 +795,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
                         asignarEntero(
                                 ps, 4, proveedor.getIdSexo()
                         );
+
                         asignarEntero(
                                 ps, 5,
                                 proveedor.getIdEstadoCivil()
@@ -615,9 +843,11 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
                         ps.setString(
                                 1, proveedor.getRuc()
                         );
+
                         ps.setString(
                                 2, proveedor.getRazonSocial()
                         );
+
                         ps.setString(
                                 3, proveedor.getNombreComercial()
                         );
@@ -632,6 +862,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
                     ps.setString(
                             4, proveedor.getEstado()
                     );
+
                     ps.setLong(
                             5, proveedor.getIdProveedor()
                     );
@@ -646,6 +877,7 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
                 return true;
 
             } catch (SQLException e) {
+
                 conexion.rollback();
                 throw e;
             }
@@ -656,6 +888,10 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             );
         }
     }
+
+    // ==========================================
+    // BUSCAR POR ID EN LA MISMA CONEXION
+    // ==========================================
 
     private Proveedor buscarPorIdEnConexion(
             Connection conexion,
@@ -670,12 +906,17 @@ public class ProveedorRepositoryImpl implements ProveedorRepository {
             ps.setLong(1, idProveedor);
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 return rs.next()
                         ? convertirProveedor(rs)
                         : null;
             }
         }
     }
+
+    // ==========================================
+    // DESACTIVAR PROVEEDOR
+    // ==========================================
 
     @Override
     public boolean eliminar(long idProveedor) {
