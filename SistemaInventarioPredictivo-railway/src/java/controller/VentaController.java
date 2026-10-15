@@ -28,6 +28,8 @@ import repository.VentaRepositoryImpl;
 @WebServlet("/VentaController")
 public class VentaController extends HttpServlet {
 
+    private static final int TAMANIO_PAGINA = 20;
+
     private final VentaRepository ventaRepo =
             new VentaRepositoryImpl();
 
@@ -38,7 +40,7 @@ public class VentaController extends HttpServlet {
             new MercaderiaServicioRepositoryImpl();
 
     // ==========================================
-    // VALIDAR SESION
+    // VALIDAR SESIÓN
     // ==========================================
 
     private boolean verificarSesion(
@@ -81,24 +83,32 @@ public class VentaController extends HttpServlet {
         String accion = request.getParameter("accion");
 
         if (accion == null || accion.isBlank()) {
-            accion = "listar";
+            accion = "inicio";
         }
 
         try {
 
-            switch (accion.toLowerCase()) {
+            switch (accion.trim().toLowerCase()) {
+
+                case "inicio":
+                    mostrarInicio(request, response);
+                    break;
 
                 case "nuevo":
                     mostrarFormularioNuevo(request, response);
+                    break;
+
+                case "buscar":
+                case "listar":
+                    listar(request, response);
                     break;
 
                 case "detalle":
                     mostrarDetalle(request, response);
                     break;
 
-                case "listar":
                 default:
-                    listar(request, response);
+                    mostrarInicio(request, response);
                     break;
             }
 
@@ -112,7 +122,7 @@ public class VentaController extends HttpServlet {
                     "No se pudo consultar la informacion de ventas."
             );
 
-            redirigirListado(request, response);
+            redirigirInicio(request, response);
 
         } catch (IllegalArgumentException e) {
 
@@ -122,7 +132,7 @@ public class VentaController extends HttpServlet {
                     e.getMessage()
             );
 
-            redirigirListado(request, response);
+            redirigirInicio(request, response);
         }
     }
 
@@ -165,7 +175,7 @@ public class VentaController extends HttpServlet {
                     e.getMessage()
             );
 
-            redirigirListado(request, response);
+            redirigirInicio(request, response);
 
         } catch (SQLException e) {
 
@@ -179,12 +189,26 @@ public class VentaController extends HttpServlet {
                     + "y las existencias disponibles."
             );
 
-            redirigirListado(request, response);
+            redirigirInicio(request, response);
         }
     }
 
     // ==========================================
-    // LISTAR VENTAS
+    // PANTALLA INICIAL
+    // ==========================================
+
+    private void mostrarInicio(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.getRequestDispatcher(
+                "/ventas-inicio.jsp"
+        ).forward(request, response);
+    }
+
+    // ==========================================
+    // BUSCAR Y PAGINAR VENTAS
     // ==========================================
 
     private void listar(
@@ -192,16 +216,76 @@ public class VentaController extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException, SQLException {
 
-        List<Venta> ventas =
-                ventaRepo.listarVentas();
+        String texto = request.getParameter("texto");
 
-        request.setAttribute(
-                "listaVentas",
-                ventas
-        );
+        if (texto == null) {
+            texto = "";
+        }
 
-        request.getRequestDispatcher("/ventas.jsp")
-                .forward(request, response);
+        texto = texto.trim();
+
+        int pagina = 1;
+
+        String paginaParametro =
+                request.getParameter("pagina");
+
+        if (paginaParametro != null
+                && !paginaParametro.isBlank()) {
+
+            try {
+                pagina = Integer.parseInt(
+                        paginaParametro
+                );
+            } catch (NumberFormatException e) {
+                pagina = 1;
+            }
+        }
+
+        if (pagina < 1) {
+            pagina = 1;
+        }
+
+        int totalRegistros =
+                ventaRepo.contarVentas(texto);
+
+        int totalPaginas =
+                (int) Math.ceil(
+                        (double) totalRegistros
+                        / TAMANIO_PAGINA
+                );
+
+        if (totalPaginas > 0 && pagina > totalPaginas) {
+            pagina = totalPaginas;
+        }
+
+        List<Venta> ventas;
+
+        if (texto.isEmpty()) {
+
+            ventas = ventaRepo.listarPaginado(
+                    pagina,
+                    TAMANIO_PAGINA
+            );
+
+        } else {
+
+            ventas = ventaRepo.buscarPaginado(
+                    texto,
+                    pagina,
+                    TAMANIO_PAGINA
+            );
+        }
+
+        request.setAttribute("listaVentas", ventas);
+        request.setAttribute("textoBusqueda", texto);
+        request.setAttribute("paginaActual", pagina);
+        request.setAttribute("totalPaginas", totalPaginas);
+        request.setAttribute("totalRegistros", totalRegistros);
+        request.setAttribute("tamanioPagina", TAMANIO_PAGINA);
+
+        request.getRequestDispatcher(
+                "/ventas.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
@@ -261,12 +345,13 @@ public class VentaController extends HttpServlet {
                 productosActivos
         );
 
-        request.getRequestDispatcher("/venta-form.jsp")
-                .forward(request, response);
+        request.getRequestDispatcher(
+                "/venta-form.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
-    // MOSTRAR DETALLE DE VENTA
+    // DETALLE DE VENTA
     // ==========================================
 
     private void mostrarDetalle(
@@ -293,14 +378,11 @@ public class VentaController extends HttpServlet {
                 ventaRepo.listarDetalles(idVenta);
 
         request.setAttribute("venta", venta);
+        request.setAttribute("detallesVenta", detalles);
 
-        request.setAttribute(
-                "detallesVenta",
-                detalles
-        );
-
-        request.getRequestDispatcher("/venta-detalle.jsp")
-                .forward(request, response);
+        request.getRequestDispatcher(
+                "/venta-detalle.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
@@ -419,7 +501,7 @@ public class VentaController extends HttpServlet {
     }
 
     // ==========================================
-    // VALIDAR IDENTIFICADOR
+    // VALIDAR ID
     // ==========================================
 
     private long obtenerLong(
@@ -428,8 +510,7 @@ public class VentaController extends HttpServlet {
 
         try {
 
-            long numero =
-                    Long.parseLong(valor);
+            long numero = Long.parseLong(valor);
 
             if (numero <= 0) {
                 throw new NumberFormatException();
@@ -456,8 +537,7 @@ public class VentaController extends HttpServlet {
 
         try {
 
-            int numero =
-                    Integer.parseInt(valor);
+            int numero = Integer.parseInt(valor);
 
             if (numero <= 0) {
                 throw new NumberFormatException();
@@ -476,7 +556,7 @@ public class VentaController extends HttpServlet {
     }
 
     // ==========================================
-    // GUARDAR MENSAJES
+    // MENSAJES
     // ==========================================
 
     private void guardarMensaje(
@@ -491,8 +571,19 @@ public class VentaController extends HttpServlet {
     }
 
     // ==========================================
-    // REDIRIGIR AL LISTADO
+    // REDIRECCIONES
     // ==========================================
+
+    private void redirigirInicio(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath()
+                + "/VentaController"
+        );
+    }
 
     private void redirigirListado(
             HttpServletRequest request,
@@ -501,7 +592,7 @@ public class VentaController extends HttpServlet {
 
         response.sendRedirect(
                 request.getContextPath()
-                + "/VentaController"
+                + "/VentaController?accion=buscar"
         );
     }
 }

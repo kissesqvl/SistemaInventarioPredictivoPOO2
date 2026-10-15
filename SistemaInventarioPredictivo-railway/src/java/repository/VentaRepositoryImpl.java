@@ -19,6 +19,10 @@ import util.ConexionBD;
 
 public class VentaRepositoryImpl implements VentaRepository {
 
+    // ==========================================
+    // REGISTRAR VENTA
+    // ==========================================
+
     @Override
     public long registrarVenta(
             Venta venta,
@@ -33,12 +37,14 @@ public class VentaRepositoryImpl implements VentaRepository {
 
         if (venta.getIdCliente() <= 0
                 || venta.getIdUsuario() <= 0) {
+
             throw new IllegalArgumentException(
                     "Selecciona un cliente y un usuario validos."
             );
         }
 
         if (detalles == null || detalles.isEmpty()) {
+
             throw new IllegalArgumentException(
                     "La venta debe tener al menos un producto o servicio."
             );
@@ -76,7 +82,8 @@ public class VentaRepositoryImpl implements VentaRepository {
 
                 BigDecimal total = BigDecimal.ZERO;
 
-                Set<Long> productosProcesados = new HashSet<>();
+                Set<Long> productosProcesados =
+                        new HashSet<>();
 
                 // =====================================
                 // VALIDAR PRODUCTOS Y CALCULAR TOTAL
@@ -97,6 +104,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                             detalle.getIdMercaderiaServicio();
 
                     if (!productosProcesados.add(idProducto)) {
+
                         throw new IllegalArgumentException(
                                 "Un producto o servicio esta repetido "
                                 + "en la venta."
@@ -111,15 +119,18 @@ public class VentaRepositoryImpl implements VentaRepository {
                         try (ResultSet rs = ps.executeQuery()) {
 
                             if (!rs.next()) {
+
                                 throw new IllegalArgumentException(
                                         "No existe el producto o servicio "
                                         + idProducto + "."
                                 );
                             }
 
-                            String estado = rs.getString("estado");
+                            String estado =
+                                    rs.getString("estado");
 
                             if (!"Activo".equalsIgnoreCase(estado)) {
+
                                 throw new IllegalArgumentException(
                                         "El producto o servicio "
                                         + idProducto + " esta inactivo."
@@ -174,6 +185,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                     int filas = ps.executeUpdate();
 
                     if (filas != 1) {
+
                         throw new SQLException(
                                 "No se pudo registrar la venta."
                         );
@@ -183,6 +195,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                             ps.getGeneratedKeys()) {
 
                         if (!claves.next()) {
+
                             throw new SQLException(
                                     "No se obtuvo el ID de la venta."
                             );
@@ -204,21 +217,29 @@ public class VentaRepositoryImpl implements VentaRepository {
                             conexion.prepareStatement(sqlDetalle)) {
 
                         ps.setLong(1, idVenta);
+
                         ps.setLong(
                                 2,
                                 detalle.getIdMercaderiaServicio()
                         );
-                        ps.setInt(3, detalle.getCantidad());
+
+                        ps.setInt(
+                                3,
+                                detalle.getCantidad()
+                        );
+
                         ps.setBigDecimal(
                                 4,
                                 detalle.getPrecioUnitario()
                         );
+
                         ps.setBigDecimal(
                                 5,
                                 detalle.getSubtotal()
                         );
 
                         if (ps.executeUpdate() != 1) {
+
                             throw new SQLException(
                                     "No se pudo registrar un detalle."
                             );
@@ -239,6 +260,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                         try (ResultSet rs = ps.executeQuery()) {
 
                             if (!rs.next()) {
+
                                 throw new SQLException(
                                         "No se encontro el producto."
                                 );
@@ -256,18 +278,25 @@ public class VentaRepositoryImpl implements VentaRepository {
                                         sqlDescontarStock
                                 )) {
 
-                            ps.setInt(1, detalle.getCantidad());
+                            ps.setInt(
+                                    1,
+                                    detalle.getCantidad()
+                            );
 
                             ps.setLong(
                                     2,
                                     detalle.getIdMercaderiaServicio()
                             );
 
-                            ps.setInt(3, detalle.getCantidad());
+                            ps.setInt(
+                                    3,
+                                    detalle.getCantidad()
+                            );
 
                             int filas = ps.executeUpdate();
 
                             if (filas != 1) {
+
                                 throw new IllegalArgumentException(
                                         "Stock insuficiente para el producto "
                                         + detalle.getIdMercaderiaServicio()
@@ -293,8 +322,11 @@ public class VentaRepositoryImpl implements VentaRepository {
             } catch (SQLException | RuntimeException e) {
 
                 try {
+
                     conexion.rollback();
+
                 } catch (SQLException rollbackError) {
+
                     e.addSuppressed(rollbackError);
                 }
 
@@ -308,7 +340,7 @@ public class VentaRepositoryImpl implements VentaRepository {
     }
 
     // ==========================================
-    // LISTAR VENTAS
+    // LISTAR TODAS LAS VENTAS (MÉTODO ORIGINAL)
     // ==========================================
 
     @Override
@@ -328,6 +360,7 @@ public class VentaRepositoryImpl implements VentaRepository {
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
+
                 ventas.add(construirVenta(rs));
             }
         }
@@ -336,11 +369,159 @@ public class VentaRepositoryImpl implements VentaRepository {
     }
 
     // ==========================================
+    // LISTAR VENTAS PAGINADAS
+    // ==========================================
+
+    @Override
+    public List<Venta> listarPaginado(
+            int pagina,
+            int tamanioPagina
+    ) throws SQLException {
+
+        return buscarPaginado(
+                "",
+                pagina,
+                tamanioPagina
+        );
+    }
+
+    // ==========================================
+    // BUSCAR VENTAS PAGINADAS
+    // ==========================================
+
+    @Override
+    public List<Venta> buscarPaginado(
+            String texto,
+            int pagina,
+            int tamanioPagina
+    ) throws SQLException {
+
+        if (pagina < 1 || tamanioPagina < 1) {
+
+            throw new IllegalArgumentException(
+                    "La pagina y su tamaño deben ser positivos."
+            );
+        }
+
+        String filtro =
+                texto == null ? "" : texto.trim();
+
+        boolean hayFiltro = !filtro.isEmpty();
+
+        long desplazamiento =
+                ((long) pagina - 1L) * tamanioPagina;
+
+        if (desplazamiento > Integer.MAX_VALUE) {
+            return new ArrayList<>();
+        }
+
+        String sql =
+                "SELECT idVenta, idCliente, idUsuario, "
+                + "fechaVenta, total, estado "
+                + "FROM Venta "
+                + (hayFiltro
+                    ? "WHERE CAST(idVenta AS CHAR) LIKE ? "
+                    + "OR CAST(idCliente AS CHAR) LIKE ? "
+                    + "OR CAST(idUsuario AS CHAR) LIKE ? "
+                    + "OR estado LIKE ? "
+                    : "")
+                + "ORDER BY fechaVenta DESC, idVenta DESC "
+                + "LIMIT ? OFFSET ?";
+
+        List<Venta> ventas = new ArrayList<>();
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            int indice = 1;
+
+            if (hayFiltro) {
+
+                String patron = "%" + filtro + "%";
+
+                for (int i = 0; i < 4; i++) {
+
+                    ps.setString(indice++, patron);
+                }
+            }
+
+            ps.setInt(
+                    indice++,
+                    tamanioPagina
+            );
+
+            ps.setInt(
+                    indice,
+                    (int) desplazamiento
+            );
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+
+                    ventas.add(construirVenta(rs));
+                }
+            }
+        }
+
+        return ventas;
+    }
+
+    // ==========================================
+    // CONTAR VENTAS PARA LA PAGINACIÓN
+    // ==========================================
+
+    @Override
+    public int contarVentas(
+            String texto
+    ) throws SQLException {
+
+        String filtro =
+                texto == null ? "" : texto.trim();
+
+        boolean hayFiltro = !filtro.isEmpty();
+
+        String sql =
+                "SELECT COUNT(*) FROM Venta "
+                + (hayFiltro
+                    ? "WHERE CAST(idVenta AS CHAR) LIKE ? "
+                    + "OR CAST(idCliente AS CHAR) LIKE ? "
+                    + "OR CAST(idUsuario AS CHAR) LIKE ? "
+                    + "OR estado LIKE ?"
+                    : "");
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            if (hayFiltro) {
+
+                String patron = "%" + filtro + "%";
+
+                for (int i = 1; i <= 4; i++) {
+
+                    ps.setString(i, patron);
+                }
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                return rs.next()
+                        ? rs.getInt(1)
+                        : 0;
+            }
+        }
+    }
+
+    // ==========================================
     // BUSCAR VENTA POR ID
     // ==========================================
 
     @Override
-    public Venta buscarPorId(long idVenta) throws SQLException {
+    public Venta buscarPorId(
+            long idVenta
+    ) throws SQLException {
 
         String sql =
                 "SELECT idVenta, idCliente, idUsuario, "
@@ -357,6 +538,7 @@ public class VentaRepositoryImpl implements VentaRepository {
             try (ResultSet rs = ps.executeQuery()) {
 
                 if (rs.next()) {
+
                     return construirVenta(rs);
                 }
             }
@@ -374,7 +556,8 @@ public class VentaRepositoryImpl implements VentaRepository {
             long idVenta
     ) throws SQLException {
 
-        List<DetalleVenta> detalles = new ArrayList<>();
+        List<DetalleVenta> detalles =
+                new ArrayList<>();
 
         String sql =
                 "SELECT idDetalleVenta, idVenta, "
@@ -394,7 +577,8 @@ public class VentaRepositoryImpl implements VentaRepository {
 
                 while (rs.next()) {
 
-                    DetalleVenta detalle = new DetalleVenta();
+                    DetalleVenta detalle =
+                            new DetalleVenta();
 
                     detalle.setIdDetalleVenta(
                             rs.getLong("idDetalleVenta")
@@ -432,8 +616,9 @@ public class VentaRepositoryImpl implements VentaRepository {
     // CONSTRUIR OBJETO VENTA
     // ==========================================
 
-    private Venta construirVenta(ResultSet rs)
-            throws SQLException {
+    private Venta construirVenta(
+            ResultSet rs
+    ) throws SQLException {
 
         Venta venta = new Venta();
 
@@ -449,10 +634,14 @@ public class VentaRepositoryImpl implements VentaRepository {
                 rs.getLong("idUsuario")
         );
 
-        Timestamp fecha = rs.getTimestamp("fechaVenta");
+        Timestamp fecha =
+                rs.getTimestamp("fechaVenta");
 
         if (fecha != null) {
-            venta.setFechaVenta(fecha.toLocalDateTime());
+
+            venta.setFechaVenta(
+                    fecha.toLocalDateTime()
+            );
         }
 
         venta.setTotal(
