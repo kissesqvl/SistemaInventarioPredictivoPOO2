@@ -1,6 +1,18 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
+<%!
+    private String escapar(String valor) {
+        if (valor == null) return "";
+
+        return valor.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#39;");
+    }
+%>
+
 <%
     if (session.getAttribute("usuario") == null) {
         response.sendRedirect(
@@ -10,6 +22,17 @@
     }
 
     String contexto = request.getContextPath();
+
+    String usuario = String.valueOf(
+            session.getAttribute("usuario")
+    );
+
+    Integer idRol =
+            (Integer) session.getAttribute("idRol");
+
+    String nombreRol =
+            idRol != null && idRol == 1
+            ? "Administrador" : "Usuario";
 
     String mensajeExito =
             (String) session.getAttribute("mensajeExito");
@@ -25,6 +48,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
@@ -32,152 +56,311 @@
 
     <style>
         * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
             font-family: Arial, Helvetica, sans-serif;
         }
 
         body {
-            margin: 0;
             min-height: 100vh;
             background: #09090f;
-            color: #ffffff;
+            color: white;
         }
 
-        .layout {
+        .dashboard {
             display: flex;
             min-height: 100vh;
         }
 
+        /* BARRA LATERAL */
+
         .sidebar {
-            width: 250px;
-            background: #11111c;
-            border-right: 1px solid #29293c;
-            padding: 30px 18px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 260px;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(
+                180deg, #171322, #100d18
+            );
+            border-right:
+                1px solid rgba(255,255,255,.08);
+        }
+
+        .logo-area {
+            height: 85px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            border-bottom:
+                1px solid rgba(255,255,255,.08);
         }
 
         .logo {
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            border-radius: 13px;
+            font-size: 18px;
+            font-weight: bold;
+            background: linear-gradient(
+                135deg, #7c3aed, #4f46e5
+            );
+        }
+
+        .logo-info h2 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .logo-info span {
+            font-size: 10px;
+            color: #8f8fa3;
+        }
+
+        .usuario-area {
+            padding: 28px 24px 24px;
             text-align: center;
-            margin-bottom: 35px;
+            border-bottom:
+                1px solid rgba(255,255,255,.06);
         }
 
-        .logo h2 {
-            color: #a78bfa;
-            font-size: 21px;
-            margin-bottom: 8px;
+        .avatar {
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(
+                135deg, #7c3aed, #4f46e5
+            );
         }
 
-        .logo p {
-            color: #9696ab;
+        .usuario-area h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .usuario-area span {
             font-size: 12px;
+            color: #9a9aac;
         }
 
-        .menu a {
+        .menu {
+            padding: 20px 14px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-titulo {
             display: block;
-            text-decoration: none;
-            color: #b8b8ca;
+            padding: 0 12px 10px;
+            color: #66667a;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1.2px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
             padding: 13px 15px;
+            margin-bottom: 6px;
             border-radius: 10px;
-            margin-bottom: 8px;
+            text-decoration: none;
+            color: #aaaabb;
             font-size: 14px;
         }
 
-        .menu a:hover {
-            background: #232338;
+        .menu-item:hover {
+            background: rgba(124,58,237,.15);
             color: white;
         }
 
-        .menu a.active {
-            background: #4c1d95;
+        .menu-item.activo {
             color: white;
+            background: linear-gradient(
+                90deg,
+                rgba(124,58,237,.35),
+                rgba(124,58,237,.08)
+            );
+            border-left: 3px solid #8b5cf6;
         }
 
-        .content {
-            flex: 1;
-            padding: 40px;
+        .menu-icono {
+            width: 25px;
+            text-align: center;
+            font-size: 17px;
         }
 
-        h1 {
+        /* CONTENIDO PRINCIPAL */
+
+        .contenido {
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at 80% 20%,
+                    rgba(124,58,237,.13),
+                    transparent 30%
+                ),
+                #09090f;
+        }
+
+        .header {
+            height: 85px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 38px;
+            background: rgba(15,15,24,.88);
+            border-bottom:
+                1px solid rgba(255,255,255,.07);
+        }
+
+        .header h1 {
+            font-size: 20px;
+        }
+
+        .header-usuario {
+            color: #aaaabb;
+            font-size: 13px;
+        }
+
+        .principal {
+            padding: 42px;
+        }
+
+        .titulo-seccion {
+            margin-bottom: 30px;
+        }
+
+        .titulo-seccion h2 {
             font-size: 28px;
             margin-bottom: 10px;
         }
 
-        .subtitle {
-            color: #a1a1b5;
+        .titulo-seccion p {
+            color: #9292a5;
             font-size: 14px;
-            margin-bottom: 35px;
         }
 
-        .options {
+        /* OPCIONES */
+
+        .opciones {
             display: grid;
             grid-template-columns:
-                repeat(auto-fit, minmax(230px, 1fr));
-            gap: 25px;
-            max-width: 800px;
+                repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            max-width: 850px;
         }
 
-        .option-card {
+        .opcion {
             display: block;
-            text-decoration: none;
-            background: #151520;
-            border: 1px solid #29293a;
+            padding: 35px 28px;
             border-radius: 16px;
-            padding: 35px 25px;
-            text-align: center;
-            color: #ffffff;
-            transition: 0.2s;
+            background: rgba(20,20,32,.92);
+            border: 1px solid rgba(255,255,255,.08);
+            text-decoration: none;
+            color: white;
+            transition: .2s;
         }
 
-        .option-card:hover {
+        .opcion:hover {
             border-color: #8b5cf6;
-            transform: translateY(-3px);
             background: #1e1a30;
+            transform: translateY(-3px);
         }
 
-        .option-icon {
+        .opcion-icono {
             font-size: 38px;
-            margin-bottom: 18px;
+            margin-bottom: 20px;
         }
 
-        .option-card h2 {
+        .opcion h3 {
             font-size: 20px;
             margin-bottom: 12px;
         }
 
-        .option-card p {
+        .opcion p {
             font-size: 13px;
             color: #a1a1b5;
             line-height: 1.6;
         }
 
-        .alert {
-            max-width: 800px;
-            padding: 15px;
-            border-radius: 9px;
+        .mensaje {
+            max-width: 850px;
+            padding: 15px 18px;
+            border-radius: 10px;
             margin-bottom: 25px;
             font-size: 13px;
         }
 
-        .success {
-            background: #14532d;
-            color: #bbf7d0;
+        .exito {
+            background: rgba(34,197,94,.12);
+            color: #86efac;
         }
 
         .error {
-            background: #450a0a;
-            color: #fecaca;
+            background: rgba(239,68,68,.12);
+            color: #fca5a5;
         }
 
-        @media (max-width: 700px) {
-            .layout {
-                flex-direction: column;
-            }
+        /* RESPONSIVE */
 
+        @media (max-width: 850px) {
             .sidebar {
-                width: 100%;
+                width: 75px;
             }
 
-            .content {
-                padding: 25px;
+            .logo-info,
+            .usuario-area h3,
+            .usuario-area span,
+            .menu-titulo {
+                display: none;
+            }
+
+            .logo-area {
+                justify-content: center;
+                padding: 0;
+            }
+
+            .logo {
+                margin: 0;
+            }
+
+            .contenido {
+                margin-left: 75px;
+                width: calc(100% - 75px);
+            }
+
+            .menu-item {
+                font-size: 0;
+                justify-content: center;
+            }
+
+            .menu-icono {
+                font-size: 19px;
+            }
+
+            .principal {
+                padding: 22px;
+            }
+
+            .header {
+                padding: 0 22px;
             }
         }
     </style>
@@ -185,83 +368,172 @@
 
 <body>
 
-<div class="layout">
+<div class="dashboard">
+
+    <!-- BARRA LATERAL COMPLETA -->
 
     <aside class="sidebar">
 
-        <div class="logo">
-            <h2>Inventario Predictivo</h2>
-            <p>Sistema de Gestión</p>
+        <div class="logo-area">
+
+            <div class="logo">SIP</div>
+
+            <div class="logo-info">
+                <h2>Inventario Predictivo</h2>
+                <span>Portal Corporativo</span>
+            </div>
+
+        </div>
+
+        <div class="usuario-area">
+
+            <div class="avatar">
+                <%= escapar(
+                    usuario.substring(0, 1).toUpperCase()
+                ) %>
+            </div>
+
+            <h3><%= escapar(usuario) %></h3>
+
+            <span><%= nombreRol %></span>
+
         </div>
 
         <nav class="menu">
 
-            <a href="<%= contexto %>/MenuController">
-                Menú principal
+            <span class="menu-titulo">
+                MENÚ PRINCIPAL
+            </span>
+
+            <a href="<%= contexto %>/MenuController"
+               class="menu-item">
+                <span class="menu-icono">🏠</span>
+                Inicio
             </a>
 
-            <a class="active"
-               href="<%= contexto %>/ClienteController">
-                Gestión de Clientes
+            <% if (idRol != null && idRol == 1) { %>
+
+            <a href="<%= contexto %>/MenuController?accion=usuarios"
+               class="menu-item">
+                <span class="menu-icono">👤</span>
+                Gestión de Usuarios
+            </a>
+
+            <% } %>
+
+            <a href="<%= contexto %>/MenuController?accion=clientes"
+               class="menu-item activo">
+                <span class="menu-icono">👥</span>
+                Clientes
+            </a>
+
+            <a href="<%= contexto %>/MenuController?accion=proveedores"
+               class="menu-item">
+                <span class="menu-icono">🚚</span>
+                Proveedores
+            </a>
+
+            <a href="<%= contexto %>/MenuController?accion=mercaderia"
+               class="menu-item">
+                <span class="menu-icono">📦</span>
+                Mercadería / Servicios
+            </a>
+
+            <a href="<%= contexto %>/MenuController?accion=ventas"
+               class="menu-item">
+                <span class="menu-icono">🛒</span>
+                Ventas
+            </a>
+
+            <a href="<%= contexto %>/MenuController?accion=reportes"
+               class="menu-item">
+                <span class="menu-icono">📊</span>
+                Reportes
             </a>
 
         </nav>
 
     </aside>
 
-    <main class="content">
+    <!-- CONTENIDO -->
 
-        <h1>Gestión de Clientes</h1>
+    <section class="contenido">
 
-        <p class="subtitle">
-            Selecciona la operación que deseas realizar.
-        </p>
+        <header class="header">
 
-        <% if (mensajeExito != null) { %>
-            <div class="alert success">
-                <%= mensajeExito %>
+            <h1>Gestión de Clientes</h1>
+
+            <div class="header-usuario">
+                ● <%= escapar(usuario) %>
             </div>
-        <% } %>
 
-        <% if (mensajeError != null) { %>
-            <div class="alert error">
-                <%= mensajeError %>
-            </div>
-        <% } %>
+        </header>
 
-        <div class="options">
+        <main class="principal">
 
-            <a class="option-card"
-               href="<%= contexto %>/ClienteController?accion=nuevo">
+            <div class="titulo-seccion">
 
-                <div class="option-icon">➕</div>
-
-                <h2>Registrar cliente</h2>
+                <h2>Clientes</h2>
 
                 <p>
-                    Registrar un nuevo cliente
-                    en el sistema.
+                    Selecciona la operación que deseas realizar.
                 </p>
 
-            </a>
+            </div>
 
-            <a class="option-card"
-               href="<%= contexto %>/ClienteController?accion=buscar">
+            <% if (mensajeExito != null) { %>
 
-                <div class="option-icon">🔍</div>
+                <div class="mensaje exito">
+                    <%= escapar(mensajeExito) %>
+                </div>
 
-                <h2>Buscar clientes</h2>
+            <% } %>
 
-                <p>
-                    Consultar, buscar y administrar
-                    los clientes registrados.
-                </p>
+            <% if (mensajeError != null) { %>
 
-            </a>
+                <div class="mensaje error">
+                    <%= escapar(mensajeError) %>
+                </div>
 
-        </div>
+            <% } %>
 
-    </main>
+            <!-- DOS OPCIONES PRINCIPALES -->
+
+            <div class="opciones">
+
+                <a class="opcion"
+                   href="<%= contexto %>/ClienteController?accion=nuevo">
+
+                    <div class="opcion-icono">➕</div>
+
+                    <h3>Registrar Cliente</h3>
+
+                    <p>
+                        Registrar un nuevo cliente
+                        en el sistema.
+                    </p>
+
+                </a>
+
+                <a class="opcion"
+                   href="<%= contexto %>/ClienteController?accion=buscar">
+
+                    <div class="opcion-icono">🔍</div>
+
+                    <h3>Buscar Clientes</h3>
+
+                    <p>
+                        Consultar, buscar y administrar
+                        los clientes registrados.
+                    </p>
+
+                </a>
+
+            </div>
+
+        </main>
+
+    </section>
 
 </div>
 
