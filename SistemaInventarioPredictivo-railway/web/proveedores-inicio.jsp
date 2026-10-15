@@ -4,10 +4,7 @@
 
 <%!
     private String escapar(String texto) {
-        if (texto == null) {
-            return "";
-        }
-
+        if (texto == null) return "";
         return texto.replace("&", "&amp;")
                     .replace("<", "&lt;")
                     .replace(">", "&gt;")
@@ -19,56 +16,40 @@
 <%
     HttpSession sesionActual = request.getSession(false);
 
-    if (sesionActual == null
-            || sesionActual.getAttribute("usuario") == null) {
-
-        response.sendRedirect(
-                request.getContextPath() + "/login.jsp"
-        );
+    if (sesionActual == null ||
+        sesionActual.getAttribute("usuario") == null) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }
 
     String contexto = request.getContextPath();
+    String usuario = String.valueOf(sesionActual.getAttribute("usuario"));
+    Integer idRol = (Integer) sesionActual.getAttribute("idRol");
 
-    String usuario = String.valueOf(
-            sesionActual.getAttribute("usuario")
-    );
-
-    Integer idRol =
-            (Integer) sesionActual.getAttribute("idRol");
-
-    String nombreRol =
-            idRol != null && idRol == 1
+    String nombreRol = idRol != null && idRol == 1
             ? "Administrador" : "Usuario";
 
     String inicialUsuario = usuario.isEmpty()
-            ? "U"
-            : usuario.substring(0, 1).toUpperCase();
+            ? "U" : usuario.substring(0, 1).toUpperCase();
 
-    String mensajeExito =
-            (String) sesionActual.getAttribute(
-                    "mensajeExitoMercaderia"
-            );
+    String mensajeExito = (String) sesionActual.getAttribute(
+            "mensajeExitoProveedor");
 
-    String mensajeError =
-            (String) sesionActual.getAttribute(
-                    "mensajeErrorMercaderia"
-            );
+    String mensajeError = (String) sesionActual.getAttribute(
+            "mensajeErrorProveedor");
 
-    sesionActual.removeAttribute("mensajeExitoMercaderia");
-    sesionActual.removeAttribute("mensajeErrorMercaderia");
+    sesionActual.removeAttribute("mensajeExitoProveedor");
+    sesionActual.removeAttribute("mensajeErrorProveedor");
 %>
 
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
-
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Gestión de Mercadería y Servicios | SIP</title>
+    <title>Gestión de Proveedores | SIP</title>
 
     <style>
         * {
@@ -89,10 +70,6 @@
             min-height: 100vh;
         }
 
-        /* =====================================
-           BARRA LATERAL
-           ===================================== */
-
         .sidebar {
             position: fixed;
             top: 0;
@@ -102,9 +79,7 @@
             display: flex;
             flex-direction: column;
             background: linear-gradient(
-                180deg,
-                #171322,
-                #100d18
+                180deg, #171322, #100d18
             );
             border-right: 1px solid rgba(255,255,255,.08);
             z-index: 10;
@@ -129,9 +104,7 @@
             font-size: 18px;
             font-weight: bold;
             background: linear-gradient(
-                135deg,
-                #7c3aed,
-                #4f46e5
+                135deg, #7c3aed, #4f46e5
             );
         }
 
@@ -162,9 +135,7 @@
             font-size: 28px;
             font-weight: bold;
             background: linear-gradient(
-                135deg,
-                #7c3aed,
-                #4f46e5
+                135deg, #7c3aed, #4f46e5
             );
         }
 
@@ -229,10 +200,6 @@
             font-size: 17px;
         }
 
-        /* =====================================
-           CONTENIDO PRINCIPAL
-           ===================================== */
-
         .contenido {
             margin-left: 260px;
             width: calc(100% - 260px);
@@ -265,7 +232,6 @@
         .header-usuario {
             color: #aaaabb;
             font-size: 13px;
-            overflow-wrap: anywhere;
         }
 
         .principal {
@@ -289,16 +255,9 @@
             line-height: 1.7;
         }
 
-        /* =====================================
-           TARJETAS DE OPCIONES
-           ===================================== */
-
         .opciones {
             display: grid;
-            grid-template-columns: repeat(
-                2,
-                minmax(0, 1fr)
-            );
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 25px;
         }
 
@@ -310,9 +269,7 @@
             padding: 35px;
             border-radius: 20px;
             background: linear-gradient(
-                145deg,
-                #1a1728,
-                #12111d
+                145deg, #1a1728, #12111d
             );
             border: 1px solid #302a42;
             text-decoration: none;
@@ -368,10 +325,6 @@
             background: #6d28d9;
         }
 
-        /* =====================================
-           MENSAJES
-           ===================================== */
-
         .mensaje {
             padding: 15px 20px;
             margin-bottom: 25px;
@@ -392,10 +345,6 @@
             color: #fca5a5;
         }
 
-        /* =====================================
-           RESPONSIVE
-           ===================================== */
-
         @media (max-width: 1100px) {
             .opciones {
                 grid-template-columns: 1fr;
@@ -403,7 +352,6 @@
         }
 
         @media (max-width: 850px) {
-
             .sidebar {
                 width: 75px;
             }
@@ -475,214 +423,166 @@
             }
         }
     </style>
-
 </head>
 
 <body>
-
 <div class="dashboard">
 
-    <!-- =====================================
-         BARRA LATERAL COMPLETA
-         ===================================== -->
-
+    <!-- BARRA LATERAL COMPLETA -->
     <aside class="sidebar">
 
         <div class="logo-area">
-
             <div class="logo">SIP</div>
 
             <div class="logo-info">
                 <h2>Inventario Predictivo</h2>
                 <span>Portal Corporativo</span>
             </div>
-
         </div>
 
         <div class="usuario-area">
-
             <div class="avatar">
                 <%= escapar(inicialUsuario) %>
             </div>
 
             <h3><%= escapar(usuario) %></h3>
             <span><%= nombreRol %></span>
-
         </div>
 
         <nav class="menu">
-
             <span class="menu-titulo">
                 MENÚ PRINCIPAL
             </span>
 
             <a href="<%= contexto %>/MenuController"
                class="menu-item">
-
                 <span class="menu-icono">🏠</span>
                 Inicio
             </a>
 
             <% if (idRol != null && idRol == 1) { %>
-
                 <a href="<%= contexto %>/MenuController?accion=usuarios"
                    class="menu-item">
-
                     <span class="menu-icono">👤</span>
                     Gestión de Usuarios
                 </a>
-
             <% } %>
 
             <a href="<%= contexto %>/MenuController?accion=clientes"
                class="menu-item">
-
                 <span class="menu-icono">👥</span>
                 Clientes
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=proveedores"
-               class="menu-item">
-
+               class="menu-item activo">
                 <span class="menu-icono">🚚</span>
                 Proveedores
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=mercaderia"
-               class="menu-item activo">
-
+               class="menu-item">
                 <span class="menu-icono">📦</span>
                 Mercadería / Servicios
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=ventas"
                class="menu-item">
-
                 <span class="menu-icono">🛒</span>
                 Ventas
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=reportes"
                class="menu-item">
-
                 <span class="menu-icono">📊</span>
                 Reportes
             </a>
-
         </nav>
-
     </aside>
 
-    <!-- =====================================
-         CONTENIDO PRINCIPAL
-         ===================================== -->
-
+    <!-- CONTENIDO PRINCIPAL -->
     <section class="contenido">
 
         <header class="header">
-
-            <h1>Gestión de Mercadería y Servicios</h1>
+            <h1>Gestión de Proveedores</h1>
 
             <div class="header-usuario">
                 ● <%= escapar(usuario) %>
             </div>
-
         </header>
 
         <main class="principal">
 
             <div class="encabezado">
-
-                <h2>Gestión de Mercadería y Servicios</h2>
+                <h2>Gestión de Proveedores</h2>
 
                 <p>
-                    Selecciona la operación que deseas
-                    realizar. Puedes registrar nuevos
-                    productos o servicios, o consultar
-                    los registros existentes.
+                    Selecciona la operación que deseas realizar.
+                    Puedes registrar nuevos proveedores o buscar
+                    y administrar los registros existentes.
                 </p>
-
             </div>
 
             <!-- MENSAJES -->
-
             <% if (mensajeExito != null) { %>
-
                 <div class="mensaje mensaje-exito">
                     <%= escapar(mensajeExito) %>
                 </div>
-
             <% } %>
 
             <% if (mensajeError != null) { %>
-
                 <div class="mensaje mensaje-error">
                     <%= escapar(mensajeError) %>
                 </div>
-
             <% } %>
 
-            <!-- =====================================
-                 DOS OPCIONES PRINCIPALES
-                 ===================================== -->
-
+            <!-- OPCIONES PRINCIPALES -->
             <div class="opciones">
 
-                <!-- REGISTRAR MERCADERIA O SERVICIO -->
-
+                <!-- REGISTRAR PROVEEDOR -->
                 <a class="tarjeta"
-                   href="<%= contexto %>/MercaderiaServicioController?accion=nuevo">
+                   href="<%= contexto %>/ProveedorController?accion=nuevo">
 
-                    <div class="tarjeta-icono">
-                        ➕
-                    </div>
+                    <div class="tarjeta-icono">➕</div>
 
-                    <h3>Registrar Mercadería / Servicio</h3>
+                    <h3>Registrar Proveedor</h3>
 
                     <p>
-                        Registra un nuevo producto o servicio.
-                        Para mercadería, también podrás
-                        ingresar el stock inicial y mínimo
-                        correspondiente.
+                        Registra un nuevo proveedor, ya sea
+                        persona natural o empresa. Completa
+                        sus datos de identificación para
+                        incorporarlo al sistema.
                     </p>
 
                     <span class="tarjeta-accion">
-                        Registrar producto / servicio →
+                        Registrar proveedor →
                     </span>
-
                 </a>
 
-                <!-- BUSCAR MERCADERIA Y SERVICIOS -->
-
+                <!-- BUSCAR PROVEEDORES -->
                 <a class="tarjeta"
-                   href="<%= contexto %>/MercaderiaServicioController?accion=buscar">
+                   href="<%= contexto %>/ProveedorController?accion=buscar">
 
-                    <div class="tarjeta-icono">
-                        🔎
-                    </div>
+                    <div class="tarjeta-icono">🔎</div>
 
-                    <h3>Buscar Mercadería / Servicios</h3>
+                    <h3>Buscar Proveedores</h3>
 
                     <p>
-                        Consulta los productos y servicios
-                        registrados, realiza búsquedas por
-                        nombre o descripción y administra
-                        sus datos e inventario.
+                        Consulta los proveedores registrados,
+                        realiza búsquedas por sus datos
+                        y administra su información
+                        desde el listado paginado.
                     </p>
 
                     <span class="tarjeta-accion">
-                        Buscar productos / servicios →
+                        Buscar proveedores →
                     </span>
-
                 </a>
 
             </div>
-
         </main>
-
     </section>
 
 </div>
-
 </body>
 </html>
