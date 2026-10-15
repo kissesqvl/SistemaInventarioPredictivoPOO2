@@ -6,30 +6,68 @@ import model.MercaderiaServicio;
 
 public interface MercaderiaServicioRepository {
 
-    // Listar toda la mercadería y los servicios
+    // ==========================================
+    // LISTAR TODOS LOS PRODUCTOS Y SERVICIOS
+    // ==========================================
+
     List<MercaderiaServicio> listar();
 
-    // Buscar por nombre o descripción
+    // ==========================================
+    // BUSCAR POR NOMBRE O DESCRIPCION
+    // ==========================================
+
     List<MercaderiaServicio> buscar(String texto);
 
-    // Buscar por identificador
+    // ==========================================
+    // BUSCAR POR IDENTIFICADOR
+    // ==========================================
+
     MercaderiaServicio buscarPorId(
             long idMercaderiaServicio
     );
 
-    // Registrar un producto o servicio
+    // ==========================================
+    // REGISTRAR PRODUCTO O SERVICIO
+    // ==========================================
+
     boolean registrar(
             MercaderiaServicio mercaderiaServicio
     );
 
-    // Actualizar los datos de un producto o servicio
+    // ==========================================
+    // ACTUALIZAR PRODUCTO O SERVICIO
+    // ==========================================
+
     boolean actualizar(
             MercaderiaServicio mercaderiaServicio
     );
 
-    // Desactivar sin eliminar físicamente
+    // ==========================================
+    // DESACTIVAR SIN ELIMINAR FISICAMENTE
+    // ==========================================
+
     boolean eliminar(
             long idMercaderiaServicio
     );
+
+    // ==========================================
+    // PAGINACION
+    // ==========================================
+
+    // Obtener solamente los registros de una pagina
+    List<MercaderiaServicio> listarPaginado(
+            int pagina,
+            int tamanioPagina
+    );
+
+    // Buscar por nombre o descripcion con paginacion
+    List<MercaderiaServicio> buscarPaginado(
+            String texto,
+            int pagina,
+            int tamanioPagina
+    );
+
+    // Contar registros para calcular el total de paginas
+    long contarMercaderia(String texto);
 
 }

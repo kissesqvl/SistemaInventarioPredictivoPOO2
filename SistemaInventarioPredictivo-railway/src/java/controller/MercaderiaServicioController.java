@@ -32,6 +32,8 @@ import service.MercaderiaRegistroService;
 @WebServlet("/MercaderiaServicioController")
 public class MercaderiaServicioController extends HttpServlet {
 
+    private static final int TAMANIO_PAGINA = 20;
+
     private final MercaderiaServicioRepository mercaderiaRepo =
             new MercaderiaServicioRepositoryImpl();
 
@@ -90,12 +92,16 @@ public class MercaderiaServicioController extends HttpServlet {
         String accion = request.getParameter("accion");
 
         if (accion == null || accion.isBlank()) {
-            accion = "listar";
+            accion = "inicio";
         }
 
         try {
 
             switch (accion.toLowerCase()) {
+
+                case "inicio":
+                    mostrarInicio(request, response);
+                    break;
 
                 case "nuevo":
                     mostrarFormularioNuevo(request, response);
@@ -106,18 +112,22 @@ public class MercaderiaServicioController extends HttpServlet {
                     break;
 
                 case "buscar":
-                    buscar(request, response);
+                case "listar":
+                    mostrarListadoPaginado(request, response);
                     break;
 
-                case "listar":
                 default:
-                    listar(request, response);
+                    mostrarInicio(request, response);
                     break;
             }
 
         } catch (IllegalArgumentException e) {
 
-            mostrarError(request, response, e.getMessage());
+            mostrarError(
+                    request,
+                    response,
+                    e.getMessage()
+            );
 
         } catch (Exception e) {
 
@@ -222,59 +232,173 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // LISTAR
+    // PANTALLA INICIAL
     // ==========================================
 
-    private void listar(
+    private void mostrarInicio(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        List<MercaderiaServicio> lista =
-                mercaderiaRepo.listar();
+        // No se consulta mercaderia ni inventario.
+        // Solamente se muestra Registrar y Buscar.
 
-        cargarDatosListado(request, lista);
-
-        request.getRequestDispatcher("/mercaderia.jsp")
-                .forward(request, response);
+        request.getRequestDispatcher(
+                "/mercaderia-inicio.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
-    // BUSCAR
+    // LISTADO CON PAGINACION
     // ==========================================
 
-    private void buscar(
+    private void mostrarListadoPaginado(
             HttpServletRequest request,
             HttpServletResponse response)
             throws ServletException, IOException {
 
         String texto = request.getParameter("texto");
 
-        List<MercaderiaServicio> lista =
-                mercaderiaRepo.buscar(texto);
+        if (texto == null) {
+            texto = "";
+        }
 
-        request.setAttribute("textoBusqueda", texto);
+        texto = texto.trim();
+
+        int pagina = obtenerPagina(request);
+
+        long totalRegistros =
+                mercaderiaRepo.contarMercaderia(texto);
+
+        long totalPaginasLong =
+                (totalRegistros + TAMANIO_PAGINA - 1)
+                / TAMANIO_PAGINA;
+
+        int totalPaginas = (int) Math.max(
+                1L,
+                Math.min(Integer.MAX_VALUE, totalPaginasLong)
+        );
+
+        if (pagina > totalPaginas) {
+            pagina = totalPaginas;
+        }
+
+        List<MercaderiaServicio> lista;
+
+        if (texto.isEmpty()) {
+
+            lista = mercaderiaRepo.listarPaginado(
+                    pagina,
+                    TAMANIO_PAGINA
+            );
+
+        } else {
+
+            lista = mercaderiaRepo.buscarPaginado(
+                    texto,
+                    pagina,
+                    TAMANIO_PAGINA
+            );
+        }
+
+        request.setAttribute(
+                "textoBusqueda",
+                texto
+        );
+
+        request.setAttribute(
+                "paginaActual",
+                pagina
+        );
+
+        request.setAttribute(
+                "totalPaginas",
+                totalPaginas
+        );
+
+        request.setAttribute(
+                "totalRegistros",
+                totalRegistros
+        );
+
+        request.setAttribute(
+                "tamanioPagina",
+                TAMANIO_PAGINA
+        );
 
         cargarDatosListado(request, lista);
 
-        request.getRequestDispatcher("/mercaderia.jsp")
-                .forward(request, response);
+        request.getRequestDispatcher(
+                "/mercaderia.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
-    // DATOS DEL LISTADO
+    // OBTENER PAGINA SOLICITADA
+    // ==========================================
+
+    private int obtenerPagina(
+            HttpServletRequest request) {
+
+        String valor = request.getParameter("pagina");
+
+        if (valor == null || valor.isBlank()) {
+            return 1;
+        }
+
+        try {
+
+            int pagina = Integer.parseInt(valor.trim());
+
+            return Math.max(1, pagina);
+
+        } catch (NumberFormatException e) {
+
+            return 1;
+        }
+    }
+
+    // ==========================================
+    // CARGAR DATOS DEL LISTADO
     // ==========================================
 
     private void cargarDatosListado(
             HttpServletRequest request,
             List<MercaderiaServicio> lista) {
 
-        request.setAttribute("listaMercaderia", lista);
+        request.setAttribute(
+                "listaMercaderia",
+                lista
+        );
+
+        List<Long> idsProductos = new ArrayList<>();
+
+        if (lista != null) {
+
+            for (MercaderiaServicio item : lista) {
+
+                if (item != null
+                        && "MERCADERIA".equals(
+                                item.getTipo())) {
+
+                    idsProductos.add(
+                            item.getIdMercaderiaServicio()
+                    );
+                }
+            }
+        }
+
+        // Solo consultar inventario de los
+        // productos presentes en esta pagina.
 
         request.setAttribute(
                 "listaInventario",
-                inventarioRepo.listar()
+                inventarioRepo.listarPorProductos(
+                        idsProductos
+                )
         );
+
+        // Mantener alertas globales de stock bajo.
 
         request.setAttribute(
                 "listaStockBajo",
@@ -328,8 +452,9 @@ public class MercaderiaServicioController extends HttpServlet {
                 "registrar"
         );
 
-        request.getRequestDispatcher("/mercaderia-form.jsp")
-                .forward(request, response);
+        request.getRequestDispatcher(
+                "/mercaderia-form.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
@@ -350,12 +475,16 @@ public class MercaderiaServicioController extends HttpServlet {
                 mercaderiaRepo.buscarPorId(id);
 
         if (item == null) {
+
             throw new IllegalArgumentException(
                     "No se encontro el producto o servicio."
             );
         }
 
-        request.setAttribute("mercaderia", item);
+        request.setAttribute(
+                "mercaderia",
+                item
+        );
 
         request.setAttribute(
                 "modoFormulario",
@@ -380,12 +509,12 @@ public class MercaderiaServicioController extends HttpServlet {
                     relaciones
             );
 
-            // NUEVO: proveedores disponibles
             cargarProveedoresActivos(request);
         }
 
-        request.getRequestDispatcher("/mercaderia-form.jsp")
-                .forward(request, response);
+        request.getRequestDispatcher(
+                "/mercaderia-form.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
@@ -423,6 +552,7 @@ public class MercaderiaServicioController extends HttpServlet {
         );
 
         if (idGenerado <= 0) {
+
             throw new IllegalArgumentException(
                     "No se pudo registrar el producto o servicio."
             );
@@ -455,6 +585,7 @@ public class MercaderiaServicioController extends HttpServlet {
                 mercaderiaRepo.buscarPorId(id);
 
         if (actual == null) {
+
             throw new IllegalArgumentException(
                     "No existe el registro solicitado."
             );
@@ -464,11 +595,11 @@ public class MercaderiaServicioController extends HttpServlet {
                 construirMercaderia(request);
 
         item.setIdMercaderiaServicio(id);
-
         item.setTipo(actual.getTipo());
         item.setEstado(actual.getEstado());
 
         if (!mercaderiaRepo.actualizar(item)) {
+
             throw new IllegalArgumentException(
                     "No fue posible actualizar el registro."
             );
@@ -498,6 +629,7 @@ public class MercaderiaServicioController extends HttpServlet {
         );
 
         if (!mercaderiaRepo.eliminar(id)) {
+
             throw new IllegalArgumentException(
                     "No se pudo desactivar el registro."
             );
@@ -530,6 +662,7 @@ public class MercaderiaServicioController extends HttpServlet {
                 mercaderiaRepo.buscarPorId(id);
 
         if (item == null) {
+
             throw new IllegalArgumentException(
                     "No se encontro el registro."
             );
@@ -538,6 +671,7 @@ public class MercaderiaServicioController extends HttpServlet {
         item.setEstado("Activo");
 
         if (!mercaderiaRepo.actualizar(item)) {
+
             throw new IllegalArgumentException(
                     "No se pudo reactivar el registro."
             );
@@ -603,6 +737,7 @@ public class MercaderiaServicioController extends HttpServlet {
         }
 
         if (!resultado) {
+
             throw new IllegalArgumentException(
                     "No se pudo modificar el stock. "
                     + "Verifica las existencias disponibles."
@@ -684,6 +819,7 @@ public class MercaderiaServicioController extends HttpServlet {
         );
 
         if (!proveedorRepo.eliminar(idRelacion)) {
+
             throw new IllegalArgumentException(
                     "No se pudo desactivar la relacion."
             );
@@ -716,12 +852,14 @@ public class MercaderiaServicioController extends HttpServlet {
         );
 
         if (tipo == null || tipo.isBlank()) {
+
             throw new IllegalArgumentException(
                     "Selecciona el tipo de registro."
             );
         }
 
         if (nombre == null || nombre.isBlank()) {
+
             throw new IllegalArgumentException(
                     "Ingresa el nombre."
             );
@@ -730,8 +868,14 @@ public class MercaderiaServicioController extends HttpServlet {
         MercaderiaServicio item =
                 new MercaderiaServicio();
 
-        item.setTipo(tipo.trim().toUpperCase());
-        item.setNombre(nombre.trim());
+        item.setTipo(
+                tipo.trim().toUpperCase()
+        );
+
+        item.setNombre(
+                nombre.trim()
+        );
+
         item.setDescripcion(descripcion);
         item.setPrecioVenta(precioVenta);
         item.setEstado("Activo");
@@ -778,6 +922,7 @@ public class MercaderiaServicioController extends HttpServlet {
         String texto = request.getParameter(parametro);
 
         if (texto == null || texto.isBlank()) {
+
             throw new IllegalArgumentException(
                     "Ingresa el valor de " + parametro + "."
             );
@@ -785,7 +930,9 @@ public class MercaderiaServicioController extends HttpServlet {
 
         try {
 
-            int valor = Integer.parseInt(texto.trim());
+            int valor = Integer.parseInt(
+                    texto.trim()
+            );
 
             if (valor < 0) {
                 throw new NumberFormatException();
@@ -817,6 +964,7 @@ public class MercaderiaServicioController extends HttpServlet {
         );
 
         if (valor <= 0) {
+
             throw new IllegalArgumentException(
                     "El campo " + parametro
                     + " debe ser mayor que cero."
@@ -837,6 +985,7 @@ public class MercaderiaServicioController extends HttpServlet {
         String texto = request.getParameter(parametro);
 
         if (texto == null || texto.isBlank()) {
+
             throw new IllegalArgumentException(
                     "Ingresa el importe de " + parametro + "."
             );
@@ -897,6 +1046,10 @@ public class MercaderiaServicioController extends HttpServlet {
         redirigirListado(request, response);
     }
 
+    // ==========================================
+    // REDIRECCIONAR AL LISTADO
+    // ==========================================
+
     private void redirigirListado(
             HttpServletRequest request,
             HttpServletResponse response)
@@ -905,6 +1058,7 @@ public class MercaderiaServicioController extends HttpServlet {
         response.sendRedirect(
                 request.getContextPath()
                 + "/MercaderiaServicioController"
+                + "?accion=buscar"
         );
     }
 }

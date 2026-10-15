@@ -6,7 +6,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import model.Inventario;
@@ -14,6 +16,10 @@ import util.ConexionBD;
 
 public class InventarioRepositoryImpl
         implements InventarioRepository {
+
+    // ==========================================
+    // CONSULTA BASE
+    // ==========================================
 
     private static final String SELECT_BASE = """
         SELECT i.idInventario,
@@ -62,7 +68,7 @@ public class InventarioRepositoryImpl
     }
 
     // ==========================================
-    // LISTAR INVENTARIO
+    // LISTAR INVENTARIO COMPLETO
     // ==========================================
 
     @Override
@@ -134,7 +140,78 @@ public class InventarioRepositoryImpl
     }
 
     // ==========================================
-    // VALIDAR QUE SEA MERCADERÍA
+    // NUEVO: LISTAR INVENTARIO POR PRODUCTOS
+    // ==========================================
+
+    @Override
+    public List<Inventario> listarPorProductos(
+            List<Long> idsProductos) {
+
+        List<Inventario> lista = new ArrayList<>();
+
+        if (idsProductos == null
+                || idsProductos.isEmpty()) {
+            return lista;
+        }
+
+        // Evita generar una consulta sin parametros.
+        // Los IDs se envian mediante PreparedStatement.
+
+        String marcadores = String.join(
+                ",",
+                Collections.nCopies(
+                        idsProductos.size(),
+                        "?"
+                )
+        );
+
+        String sql = SELECT_BASE + """
+            INNER JOIN MercaderiaServicio m
+                ON i.idMercaderiaServicio =
+                   m.idMercaderiaServicio
+            WHERE m.tipo = 'MERCADERIA'
+              AND i.idMercaderiaServicio IN (
+            """ + marcadores + """
+            )
+            ORDER BY i.idInventario DESC
+            """;
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            for (int i = 0; i < idsProductos.size(); i++) {
+
+                Long id = idsProductos.get(i);
+
+                if (id == null || id <= 0) {
+                    throw new IllegalArgumentException(
+                            "Identificador de producto no valido."
+                    );
+                }
+
+                ps.setLong(i + 1, id);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+                    lista.add(convertir(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Error al consultar inventario por productos.",
+                    e
+            );
+        }
+
+        return lista;
+    }
+
+    // ==========================================
+    // VALIDAR QUE SEA MERCADERIA
     // ==========================================
 
     private boolean esMercaderia(
@@ -151,7 +228,7 @@ public class InventarioRepositoryImpl
             """;
 
         try (PreparedStatement ps =
-                conexion.prepareStatement(sql)) {
+                     conexion.prepareStatement(sql)) {
 
             ps.setLong(1, idMercaderiaServicio);
 
@@ -177,10 +254,12 @@ public class InventarioRepositoryImpl
 
         String sql = """
             INSERT INTO Inventario
-            (idMercaderiaServicio,
-             stockActual,
-             stockMinimo,
-             fechaActualizacion)
+            (
+                idMercaderiaServicio,
+                stockActual,
+                stockMinimo,
+                fechaActualizacion
+            )
             VALUES (?, ?, ?, NOW())
             """;
 
@@ -206,7 +285,7 @@ public class InventarioRepositoryImpl
                     """;
 
                 try (PreparedStatement ps =
-                        conexion.prepareStatement(sqlExiste)) {
+                             conexion.prepareStatement(sqlExiste)) {
 
                     ps.setLong(
                             1,
@@ -214,6 +293,7 @@ public class InventarioRepositoryImpl
                     );
 
                     try (ResultSet rs = ps.executeQuery()) {
+
                         if (rs.next()) {
                             conexion.rollback();
                             return false;
@@ -222,7 +302,7 @@ public class InventarioRepositoryImpl
                 }
 
                 try (PreparedStatement ps =
-                        conexion.prepareStatement(sql)) {
+                             conexion.prepareStatement(sql)) {
 
                     ps.setLong(
                             1,
@@ -249,6 +329,7 @@ public class InventarioRepositoryImpl
                 return true;
 
             } catch (SQLException e) {
+
                 conexion.rollback();
                 throw e;
             }
@@ -261,7 +342,7 @@ public class InventarioRepositoryImpl
     }
 
     // ==========================================
-    // ACTUALIZAR STOCK Y STOCK MÍNIMO
+    // ACTUALIZAR STOCK ACTUAL Y MINIMO
     // ==========================================
 
     @Override
@@ -290,8 +371,15 @@ public class InventarioRepositoryImpl
              PreparedStatement ps =
                      conexion.prepareStatement(sql)) {
 
-            ps.setInt(1, inventario.getStockActual());
-            ps.setInt(2, inventario.getStockMinimo());
+            ps.setInt(
+                    1,
+                    inventario.getStockActual()
+            );
+
+            ps.setInt(
+                    2,
+                    inventario.getStockMinimo()
+            );
 
             ps.setLong(
                     3,
@@ -364,9 +452,9 @@ public class InventarioRepositoryImpl
             return false;
         }
 
-        // Actualización atómica: evita que dos
-        // operaciones descuenten más stock
-        // del disponible.
+        // Actualizacion atomica:
+        // no permite descontar mas del stock disponible.
+
         String sql = """
             UPDATE Inventario i
             INNER JOIN MercaderiaServicio m
@@ -426,7 +514,8 @@ public class InventarioRepositoryImpl
 
         } catch (SQLException e) {
             throw new IllegalStateException(
-                    "Error al listar productos con stock bajo.", e
+                    "Error al listar productos con stock bajo.",
+                    e
             );
         }
 

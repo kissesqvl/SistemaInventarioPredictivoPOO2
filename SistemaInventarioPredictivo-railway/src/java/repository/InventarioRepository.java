@@ -14,10 +14,10 @@ public interface InventarioRepository {
             long idMercaderiaServicio
     );
 
-    // Registrar el inventario inicial de un producto
+    // Registrar inventario inicial
     boolean registrar(Inventario inventario);
 
-    // Actualizar el stock actual y mínimo
+    // Actualizar stock actual y minimo
     boolean actualizar(Inventario inventario);
 
     // Aumentar existencias
@@ -26,7 +26,7 @@ public interface InventarioRepository {
             int cantidad
     );
 
-    // Descontar existencias si hay stock suficiente
+    // Disminuir existencias
     boolean disminuirStock(
             long idMercaderiaServicio,
             int cantidad
@@ -34,4 +34,10 @@ public interface InventarioRepository {
 
     // Obtener productos con stock bajo
     List<Inventario> listarStockBajo();
+
+    // NUEVO: cargar inventario solo de los
+    // productos mostrados en la pagina
+    List<Inventario> listarPorProductos(
+            List<Long> idsProductos
+    );
 }
