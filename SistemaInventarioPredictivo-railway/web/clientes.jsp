@@ -1,12 +1,15 @@
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
+<%@page import="java.net.URLEncoder"%>
+<%@page import="java.nio.charset.StandardCharsets"%>
 <%@page import="model.Cliente"%>
 <%@page import="jakarta.servlet.http.HttpSession"%>
 
 <%!
     private String escapar(String valor) {
         if (valor == null) return "";
+
         return valor.replace("&", "&amp;")
                     .replace("<", "&lt;")
                     .replace(">", "&gt;")
@@ -18,22 +21,24 @@
 <%
     HttpSession sesion = request.getSession(false);
 
-    if (sesion == null ||
-        sesion.getAttribute("usuario") == null) {
+    if (sesion == null
+            || sesion.getAttribute("usuario") == null) {
 
         response.sendRedirect(
-            request.getContextPath() + "/login.jsp"
+                request.getContextPath() + "/login.jsp"
         );
         return;
     }
 
     String usuario = String.valueOf(
-        sesion.getAttribute("usuario")
+            sesion.getAttribute("usuario")
     );
 
-    Integer idRol = (Integer) sesion.getAttribute("idRol");
+    Integer idRol =
+            (Integer) sesion.getAttribute("idRol");
 
-    String nombreRol = idRol != null && idRol == 1
+    String nombreRol =
+            idRol != null && idRol == 1
             ? "Administrador" : "Usuario";
 
     List<Cliente> clientes =
@@ -42,7 +47,45 @@
     String busqueda =
             (String) request.getAttribute("textoBusqueda");
 
-    if (busqueda == null) busqueda = "";
+    if (busqueda == null) {
+        busqueda = "";
+    }
+
+    Integer paginaAtributo =
+            (Integer) request.getAttribute("paginaActual");
+
+    Integer totalPaginasAtributo =
+            (Integer) request.getAttribute("totalPaginas");
+
+    Long totalRegistrosAtributo =
+            (Long) request.getAttribute("totalRegistros");
+
+    Integer tamanioPaginaAtributo =
+            (Integer) request.getAttribute("tamanioPagina");
+
+    int paginaActual =
+            paginaAtributo == null ? 1 : paginaAtributo;
+
+    int totalPaginas =
+            totalPaginasAtributo == null
+            ? 1 : totalPaginasAtributo;
+
+    long totalRegistros =
+            totalRegistrosAtributo == null
+            ? 0L : totalRegistrosAtributo;
+
+    int tamanioPagina =
+            tamanioPaginaAtributo == null
+            ? 20 : tamanioPaginaAtributo;
+
+    long registroInicio = totalRegistros == 0
+            ? 0
+            : ((long) paginaActual - 1) * tamanioPagina + 1;
+
+    long registroFin = Math.min(
+            totalRegistros,
+            (long) paginaActual * tamanioPagina
+    );
 
     String mensajeExito =
             (String) sesion.getAttribute("mensajeExito");
@@ -54,12 +97,23 @@
     sesion.removeAttribute("mensajeError");
 
     String contexto = request.getContextPath();
+
+    String busquedaURL = URLEncoder.encode(
+            busqueda,
+            StandardCharsets.UTF_8
+    );
+
+    String urlBusqueda =
+            contexto
+            + "/ClienteController?accion=buscar&texto="
+            + busquedaURL;
 %>
 
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
@@ -76,13 +130,15 @@
         body {
             min-height: 100vh;
             background: #09090f;
-            color: #fff;
+            color: #ffffff;
         }
 
         .dashboard {
             display: flex;
             min-height: 100vh;
         }
+
+        /* SIDEBAR */
 
         .sidebar {
             position: fixed;
@@ -95,7 +151,8 @@
             background: linear-gradient(
                 180deg, #171322, #100d18
             );
-            border-right: 1px solid rgba(255,255,255,.08);
+            border-right:
+                1px solid rgba(255,255,255,.08);
         }
 
         .logo-area {
@@ -103,7 +160,8 @@
             display: flex;
             align-items: center;
             padding: 0 24px;
-            border-bottom: 1px solid rgba(255,255,255,.08);
+            border-bottom:
+                1px solid rgba(255,255,255,.08);
         }
 
         .logo {
@@ -134,7 +192,8 @@
         .usuario-area {
             padding: 28px 24px 24px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,.06);
+            border-bottom:
+                1px solid rgba(255,255,255,.06);
         }
 
         .avatar {
@@ -210,6 +269,8 @@
             font-size: 17px;
         }
 
+        /* CONTENIDO */
+
         .contenido {
             margin-left: 260px;
             width: calc(100% - 260px);
@@ -230,7 +291,8 @@
             justify-content: space-between;
             padding: 0 38px;
             background: rgba(15,15,24,.88);
-            border-bottom: 1px solid rgba(255,255,255,.07);
+            border-bottom:
+                1px solid rgba(255,255,255,.07);
         }
 
         .header h1 {
@@ -264,6 +326,8 @@
             font-size: 14px;
         }
 
+        /* BOTONES */
+
         .btn {
             display: inline-block;
             padding: 11px 17px;
@@ -273,6 +337,7 @@
             font-size: 13px;
             font-weight: bold;
             cursor: pointer;
+            white-space: nowrap;
         }
 
         .btn-primary {
@@ -289,10 +354,20 @@
             color: #ddd6fe;
         }
 
+        .btn-secondary:hover {
+            background: #37304d;
+        }
+
         .btn-danger {
             background: rgba(239,68,68,.15);
             color: #fca5a5;
         }
+
+        .btn-danger:hover {
+            background: rgba(239,68,68,.25);
+        }
+
+        /* PANEL */
 
         .panel {
             padding: 25px;
@@ -322,6 +397,25 @@
             border-color: #8b5cf6;
         }
 
+        /* RESUMEN DE RESULTADOS */
+
+        .resultados-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px 0 18px;
+            color: #aaaabb;
+            font-size: 13px;
+        }
+
+        .resultados-info strong {
+            color: #c4b5fd;
+        }
+
+        /* TABLA */
+
         .tabla-contenedor {
             width: 100%;
             overflow-x: auto;
@@ -344,7 +438,8 @@
             padding: 16px 12px;
             color: #d4d4df;
             font-size: 13px;
-            border-bottom: 1px solid rgba(255,255,255,.06);
+            border-bottom:
+                1px solid rgba(255,255,255,.06);
         }
 
         .acciones {
@@ -394,7 +489,50 @@
             color: #9292a5;
         }
 
+        /* PAGINACION */
+
+        .paginacion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top:
+                1px solid rgba(255,255,255,.08);
+        }
+
+        .paginacion-info {
+            color: #aaaabb;
+            font-size: 13px;
+        }
+
+        .paginacion-controles {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagina-actual {
+            padding: 10px 15px;
+            border-radius: 9px;
+            background: rgba(124,58,237,.15);
+            color: #c4b5fd;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .btn-deshabilitado {
+            opacity: .4;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+
+        /* RESPONSIVE */
+
         @media (max-width: 850px) {
+
             .sidebar {
                 width: 75px;
             }
@@ -442,6 +580,22 @@
                 align-items: flex-start;
             }
         }
+
+        @media (max-width: 550px) {
+
+            .buscador {
+                flex-wrap: wrap;
+            }
+
+            .buscador input {
+                flex-basis: 100%;
+            }
+
+            .paginacion {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
     </style>
 </head>
 
@@ -449,10 +603,13 @@
 
 <div class="dashboard">
 
+    <!-- SIDEBAR -->
+
     <aside class="sidebar">
 
         <div class="logo-area">
             <div class="logo">SIP</div>
+
             <div class="logo-info">
                 <h2>Inventario Predictivo</h2>
                 <span>Portal Corporativo</span>
@@ -460,16 +617,24 @@
         </div>
 
         <div class="usuario-area">
+
             <div class="avatar">
-                <%= escapar(usuario.substring(0, 1).toUpperCase()) %>
+                <%= escapar(
+                    usuario.substring(0, 1).toUpperCase()
+                ) %>
             </div>
+
             <h3><%= escapar(usuario) %></h3>
+
             <span><%= nombreRol %></span>
+
         </div>
 
         <nav class="menu">
 
-            <span class="menu-titulo">MENÚ PRINCIPAL</span>
+            <span class="menu-titulo">
+                MENÚ PRINCIPAL
+            </span>
 
             <a href="<%= contexto %>/MenuController"
                class="menu-item">
@@ -478,11 +643,13 @@
             </a>
 
             <% if (idRol != null && idRol == 1) { %>
+
             <a href="<%= contexto %>/MenuController?accion=usuarios"
                class="menu-item">
                 <span class="menu-icono">👤</span>
                 Gestión de Usuarios
             </a>
+
             <% } %>
 
             <a href="<%= contexto %>/MenuController?accion=clientes"
@@ -518,22 +685,29 @@
         </nav>
     </aside>
 
+    <!-- CONTENIDO -->
+
     <section class="contenido">
 
         <header class="header">
+
             <h1>Gestión de Clientes</h1>
+
             <div class="header-usuario">
                 ● <%= escapar(usuario) %>
             </div>
+
         </header>
 
         <main class="principal">
 
             <div class="titulo-seccion">
+
                 <div>
-                    <h2>Clientes</h2>
+                    <h2>Consulta de Clientes</h2>
+
                     <p>
-                        Administración y consulta de clientes
+                        Busca y administra los clientes
                         registrados en el sistema.
                     </p>
                 </div>
@@ -542,21 +716,28 @@
                    class="btn btn-primary">
                     + Nuevo Cliente
                 </a>
+
             </div>
 
             <% if (mensajeExito != null) { %>
+
                 <div class="mensaje exito">
                     <%= escapar(mensajeExito) %>
                 </div>
+
             <% } %>
 
             <% if (mensajeError != null) { %>
+
                 <div class="mensaje error">
                     <%= escapar(mensajeError) %>
                 </div>
+
             <% } %>
 
             <div class="panel">
+
+                <!-- BUSCADOR -->
 
                 <form class="buscador"
                       method="get"
@@ -578,12 +759,45 @@
 
                     <a href="<%= contexto %>/ClienteController"
                        class="btn btn-secondary">
-                        Limpiar
+                        Volver
                     </a>
+
                 </form>
 
+                <!-- RESUMEN -->
+
+                <div class="resultados-info">
+
+                    <span>
+                        Registros encontrados:
+                        <strong>
+                            <%= totalRegistros %>
+                        </strong>
+                    </span>
+
+                    <span>
+                        Mostrando
+                        <strong>
+                            <%= registroInicio %>
+                        </strong>
+                        -
+                        <strong>
+                            <%= registroFin %>
+                        </strong>
+                        de
+                        <strong>
+                            <%= totalRegistros %>
+                        </strong>
+                    </span>
+
+                </div>
+
+                <!-- TABLA -->
+
                 <div class="tabla-contenedor">
+
                     <table>
+
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -597,35 +811,56 @@
 
                         <tbody>
 
-                        <% if (clientes != null && !clientes.isEmpty()) {
+                        <% if (clientes != null
+                                && !clientes.isEmpty()) {
 
                             for (Cliente cliente : clientes) {
                         %>
 
                             <tr>
+
                                 <td>
                                     <%= cliente.getIdCliente() %>
                                 </td>
 
                                 <td>
-                                    <%= escapar(cliente.getNombres()) %>
+                                    <%= escapar(
+                                        cliente.getNombres()
+                                    ) %>
                                 </td>
 
                                 <td>
-                                    <%= escapar(cliente.getApellidos()) %>
+                                    <%= escapar(
+                                        cliente.getApellidos()
+                                    ) %>
                                 </td>
 
                                 <td>
-                                    <%= escapar(cliente.getDni()) %>
+                                    <%= escapar(
+                                        cliente.getDni()
+                                    ) %>
                                 </td>
 
                                 <td>
-                                    <span class="estado <%= "Activo".equalsIgnoreCase(cliente.getEstado()) ? "activo" : "inactivo" %>">
-                                        <%= escapar(cliente.getEstado()) %>
+
+                                    <span class="estado <%= 
+                                        "Activo".equalsIgnoreCase(
+                                            cliente.getEstado()
+                                        )
+                                        ? "activo"
+                                        : "inactivo"
+                                    %>">
+
+                                        <%= escapar(
+                                            cliente.getEstado()
+                                        ) %>
+
                                     </span>
+
                                 </td>
 
                                 <td>
+
                                     <div class="acciones">
 
                                         <a class="btn btn-secondary"
@@ -633,51 +868,118 @@
                                             Editar
                                         </a>
 
-                                        <% if ("Activo".equalsIgnoreCase(cliente.getEstado())) { %>
+                                        <% if ("Activo".equalsIgnoreCase(
+                                                cliente.getEstado()
+                                        )) { %>
 
-                                        <form method="post"
-                                              action="<%= contexto %>/ClienteController"
-                                              onsubmit="return confirm('¿Deseas desactivar este cliente?');">
+                                            <form method="post"
+                                                  action="<%= contexto %>/ClienteController"
+                                                  onsubmit="return confirm('¿Deseas desactivar este cliente?');">
 
-                                            <input type="hidden"
-                                                   name="accion"
-                                                   value="eliminar">
+                                                <input type="hidden"
+                                                       name="accion"
+                                                       value="eliminar">
 
-                                            <input type="hidden"
-                                                   name="idCliente"
-                                                   value="<%= cliente.getIdCliente() %>">
+                                                <input type="hidden"
+                                                       name="idCliente"
+                                                       value="<%= cliente.getIdCliente() %>">
 
-                                            <button type="submit"
-                                                    class="btn btn-danger">
-                                                Desactivar
-                                            </button>
-                                        </form>
+                                                <button type="submit"
+                                                        class="btn btn-danger">
+                                                    Desactivar
+                                                </button>
+
+                                            </form>
 
                                         <% } %>
 
                                     </div>
+
                                 </td>
+
                             </tr>
 
                         <%  }
+
                            } else { %>
 
                             <tr>
-                                <td colspan="6" class="vacio">
-                                    No se encontraron clientes registrados.
+                                <td colspan="6"
+                                    class="vacio">
+
+                                    No se encontraron clientes
+                                    con los criterios indicados.
+
                                 </td>
                             </tr>
 
                         <% } %>
 
                         </tbody>
+
                     </table>
+
+                </div>
+
+                <!-- PAGINACION -->
+
+                <div class="paginacion">
+
+                    <div class="paginacion-info">
+
+                        Página
+                        <strong><%= paginaActual %></strong>
+                        de
+                        <strong><%= totalPaginas %></strong>
+
+                    </div>
+
+                    <div class="paginacion-controles">
+
+                        <% if (paginaActual > 1) { %>
+
+                            <a class="btn btn-secondary"
+                               href="<%= escapar(urlBusqueda) %>&amp;pagina=<%= paginaActual - 1 %>">
+                                ← Anterior
+                            </a>
+
+                        <% } else { %>
+
+                            <span class="btn btn-secondary btn-deshabilitado">
+                                ← Anterior
+                            </span>
+
+                        <% } %>
+
+                        <span class="pagina-actual">
+                            <%= paginaActual %>
+                        </span>
+
+                        <% if (paginaActual < totalPaginas) { %>
+
+                            <a class="btn btn-primary"
+                               href="<%= escapar(urlBusqueda) %>&amp;pagina=<%= paginaActual + 1 %>">
+                                Siguiente →
+                            </a>
+
+                        <% } else { %>
+
+                            <span class="btn btn-primary btn-deshabilitado">
+                                Siguiente →
+                            </span>
+
+                        <% } %>
+
+                    </div>
+
                 </div>
 
             </div>
 
         </main>
+
     </section>
+
 </div>
 
 </body>

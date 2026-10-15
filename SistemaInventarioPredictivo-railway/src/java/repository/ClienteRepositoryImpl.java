@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,14 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         FROM Cliente c
         INNER JOIN DatosPersonales d
             ON c.idDatosPersonales = d.idDatosPersonales
+        """;
+
+    private static final String FILTRO_BUSQUEDA = """
+        WHERE (
+            d.nombres LIKE ?
+            OR d.apellidos LIKE ?
+            OR d.dni LIKE ?
+        )
         """;
 
     private Cliente convertirCliente(ResultSet rs)
@@ -54,6 +63,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         return cliente;
     }
 
+    // ==========================================
+    // LISTAR (COMPATIBILIDAD)
+    // ==========================================
+
     @Override
     public List<Cliente> listar() {
 
@@ -80,17 +93,18 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         return clientes;
     }
 
+    // ==========================================
+    // BUSCAR (COMPATIBILIDAD)
+    // ==========================================
+
     @Override
     public List<Cliente> buscar(String texto) {
 
         List<Cliente> clientes = new ArrayList<>();
 
-        String sql = SELECT_BASE + """
-            WHERE d.nombres LIKE ?
-               OR d.apellidos LIKE ?
-               OR d.dni LIKE ?
-            ORDER BY c.idCliente DESC
-            """;
+        String sql = SELECT_BASE
+                + FILTRO_BUSQUEDA
+                + " ORDER BY c.idCliente DESC";
 
         String filtro = "%"
                 + (texto == null ? "" : texto.trim())
@@ -119,6 +133,163 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         return clientes;
     }
 
+    // ==========================================
+    // LISTAR PAGINADO
+    // ==========================================
+
+    @Override
+    public List<Cliente> listarPaginado(
+            int pagina,
+            int tamanioPagina) {
+
+        List<Cliente> clientes = new ArrayList<>();
+
+        int paginaSegura = Math.max(1, pagina);
+        int tamanioSeguro = Math.max(
+                1, Math.min(100, tamanioPagina)
+        );
+
+        long offset = ((long) paginaSegura - 1)
+                * tamanioSeguro;
+
+        String sql = SELECT_BASE + """
+            ORDER BY c.idCliente DESC
+            LIMIT ? OFFSET ?
+            """;
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            ps.setInt(1, tamanioSeguro);
+            ps.setLong(2, offset);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+                    clientes.add(convertirCliente(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Error al listar clientes paginados.", e
+            );
+        }
+
+        return clientes;
+    }
+
+    // ==========================================
+    // BUSCAR PAGINADO
+    // ==========================================
+
+    @Override
+    public List<Cliente> buscarPaginado(
+            String texto,
+            int pagina,
+            int tamanioPagina) {
+
+        if (texto == null || texto.isBlank()) {
+            return listarPaginado(pagina, tamanioPagina);
+        }
+
+        List<Cliente> clientes = new ArrayList<>();
+
+        int paginaSegura = Math.max(1, pagina);
+        int tamanioSeguro = Math.max(
+                1, Math.min(100, tamanioPagina)
+        );
+
+        long offset = ((long) paginaSegura - 1)
+                * tamanioSeguro;
+
+        String sql = SELECT_BASE
+                + FILTRO_BUSQUEDA
+                + """
+                    ORDER BY c.idCliente DESC
+                    LIMIT ? OFFSET ?
+                    """;
+
+        String filtro = "%" + texto.trim() + "%";
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            ps.setString(1, filtro);
+            ps.setString(2, filtro);
+            ps.setString(3, filtro);
+            ps.setInt(4, tamanioSeguro);
+            ps.setLong(5, offset);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                while (rs.next()) {
+                    clientes.add(convertirCliente(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Error al buscar clientes paginados.", e
+            );
+        }
+
+        return clientes;
+    }
+
+    // ==========================================
+    // CONTAR CLIENTES
+    // ==========================================
+
+    @Override
+    public long contarClientes(String texto) {
+
+        boolean conFiltro =
+                texto != null && !texto.isBlank();
+
+        String sql = """
+            SELECT COUNT(*) AS total
+            FROM Cliente c
+            INNER JOIN DatosPersonales d
+                ON c.idDatosPersonales = d.idDatosPersonales
+            """
+            + (conFiltro ? FILTRO_BUSQUEDA : "");
+
+        try (Connection conexion = ConexionBD.getConexion();
+             PreparedStatement ps =
+                     conexion.prepareStatement(sql)) {
+
+            if (conFiltro) {
+
+                String filtro = "%" + texto.trim() + "%";
+
+                ps.setString(1, filtro);
+                ps.setString(2, filtro);
+                ps.setString(3, filtro);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getLong("total");
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException(
+                    "Error al contar clientes.", e
+            );
+        }
+
+        return 0;
+    }
+
+    // ==========================================
+    // BUSCAR POR ID
+    // ==========================================
+
     @Override
     public Cliente buscarPorId(long idCliente) {
 
@@ -132,6 +303,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             ps.setLong(1, idCliente);
 
             try (ResultSet rs = ps.executeQuery()) {
+
                 if (rs.next()) {
                     return convertirCliente(rs);
                 }
@@ -145,6 +317,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
         return null;
     }
+
+    // ==========================================
+    // REGISTRAR
+    // ==========================================
 
     @Override
     public boolean registrar(
@@ -169,6 +345,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             conexion.setAutoCommit(false);
 
             try {
+
                 long idDatosPersonales;
 
                 try (PreparedStatement ps =
@@ -182,15 +359,18 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                     ps.setString(3, cliente.getDni());
 
                     if (cliente.getIdSexo() == null) {
-                        ps.setNull(4, java.sql.Types.INTEGER);
+                        ps.setNull(4, Types.INTEGER);
                     } else {
                         ps.setInt(4, cliente.getIdSexo());
                     }
 
                     if (cliente.getIdEstadoCivil() == null) {
-                        ps.setNull(5, java.sql.Types.INTEGER);
+                        ps.setNull(5, Types.INTEGER);
                     } else {
-                        ps.setInt(5, cliente.getIdEstadoCivil());
+                        ps.setInt(
+                                5,
+                                cliente.getIdEstadoCivil()
+                        );
                     }
 
                     ps.setString(6, usuarioRegistro);
@@ -207,7 +387,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
                         if (!claves.next()) {
                             throw new SQLException(
-                                    "No se generó el ID de datos personales."
+                                    "No se genero el ID de datos personales."
                             );
                         }
 
@@ -222,7 +402,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
                     if (ps.executeUpdate() != 1) {
                         throw new SQLException(
-                                "No se creó el registro del cliente."
+                                "No se creo el registro del cliente."
                         );
                     }
                 }
@@ -231,6 +411,7 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                 return true;
 
             } catch (SQLException e) {
+
                 conexion.rollback();
                 throw e;
             }
@@ -241,6 +422,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             );
         }
     }
+
+    // ==========================================
+    // ACTUALIZAR
+    // ==========================================
 
     @Override
     public boolean actualizar(Cliente cliente) {
@@ -270,15 +455,18 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             ps.setString(3, cliente.getDni());
 
             if (cliente.getIdSexo() == null) {
-                ps.setNull(4, java.sql.Types.INTEGER);
+                ps.setNull(4, Types.INTEGER);
             } else {
                 ps.setInt(4, cliente.getIdSexo());
             }
 
             if (cliente.getIdEstadoCivil() == null) {
-                ps.setNull(5, java.sql.Types.INTEGER);
+                ps.setNull(5, Types.INTEGER);
             } else {
-                ps.setInt(5, cliente.getIdEstadoCivil());
+                ps.setInt(
+                        5,
+                        cliente.getIdEstadoCivil()
+                );
             }
 
             ps.setString(6, cliente.getEstado());
@@ -292,6 +480,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             );
         }
     }
+
+    // ==========================================
+    // DESACTIVAR CLIENTE
+    // ==========================================
 
     @Override
     public boolean eliminar(long idCliente) {

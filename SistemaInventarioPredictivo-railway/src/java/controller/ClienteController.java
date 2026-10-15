@@ -23,13 +23,15 @@ public class ClienteController extends HttpServlet {
 
     private ClienteRepository clienteRepository;
 
+    private static final int TAMANIO_PAGINA = 20;
+
     @Override
     public void init() throws ServletException {
         clienteRepository = new ClienteRepositoryImpl();
     }
 
     // ==========================================
-    // VALIDAR SESIÓN
+    // VALIDAR SESION
     // ==========================================
 
     private HttpSession validarSesion(
@@ -45,6 +47,7 @@ public class ClienteController extends HttpServlet {
             response.sendRedirect(
                     request.getContextPath() + "/login.jsp"
             );
+
             return null;
         }
 
@@ -52,7 +55,7 @@ public class ClienteController extends HttpServlet {
     }
 
     // ==========================================
-    // GET: LISTAR, BUSCAR Y FORMULARIOS
+    // GET: INICIO, BUSCAR Y FORMULARIOS
     // ==========================================
 
     @Override
@@ -68,42 +71,71 @@ public class ClienteController extends HttpServlet {
         String accion = request.getParameter("accion");
 
         if (accion == null || accion.isBlank()) {
-            accion = "listar";
+            accion = "inicio";
         }
 
         try {
-            switch (accion.toLowerCase()) {
 
+            switch (accion.trim().toLowerCase()) {
+
+                // PANTALLA INICIAL SIN CONSULTAR CLIENTES
+                case "inicio":
+                    mostrarInicio(request, response);
+                    break;
+
+                // FORMULARIO DE REGISTRO
                 case "nuevo":
                     request.setAttribute("modo", "nuevo");
+
                     request.getRequestDispatcher(
                             "/cliente-form.jsp"
                     ).forward(request, response);
                     break;
 
+                // FORMULARIO DE EDICION
                 case "editar":
                     mostrarEditar(request, response);
                     break;
 
+                // BUSQUEDA PAGINADA
                 case "buscar":
-                    listarClientes(request, response, true);
+                case "listar":
+                    listarClientes(request, response);
                     break;
 
-                case "listar":
                 default:
-                    listarClientes(request, response, false);
+                    mostrarInicio(request, response);
                     break;
             }
 
         } catch (IllegalStateException e) {
+
             getServletContext().log(
                     "Error al consultar clientes", e
             );
+
             response.sendError(
                     HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "No se pudo consultar la información de clientes."
+                    "No se pudo consultar la informacion de clientes."
             );
         }
+    }
+
+    // ==========================================
+    // PANTALLA INICIAL
+    // ==========================================
+
+    private void mostrarInicio(
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        // No realiza consultas a la base de datos.
+        // Muestra las opciones Registrar y Buscar.
+
+        request.getRequestDispatcher(
+                "/clientes-inicio.jsp"
+        ).forward(request, response);
     }
 
     // ==========================================
@@ -126,26 +158,35 @@ public class ClienteController extends HttpServlet {
 
         String accion = request.getParameter("accion");
 
-        if (accion == null) {
+        if (accion == null || accion.isBlank()) {
+
             response.sendRedirect(
                     request.getContextPath() + "/ClienteController"
             );
+
             return;
         }
 
         try {
-            switch (accion.toLowerCase()) {
+
+            switch (accion.trim().toLowerCase()) {
 
                 case "registrar":
-                    guardarCliente(request, response, sesion, false);
+                    guardarCliente(
+                            request, response, sesion, false
+                    );
                     break;
 
                 case "actualizar":
-                    guardarCliente(request, response, sesion, true);
+                    guardarCliente(
+                            request, response, sesion, true
+                    );
                     break;
 
                 case "eliminar":
-                    desactivarCliente(request, response, sesion);
+                    desactivarCliente(
+                            request, response, sesion
+                    );
                     break;
 
                 default:
@@ -157,13 +198,14 @@ public class ClienteController extends HttpServlet {
             }
 
         } catch (IllegalStateException e) {
+
             getServletContext().log(
                     "Error al modificar clientes", e
             );
 
             sesion.setAttribute(
                     "mensajeError",
-                    "No se pudo completar la operación en MySQL."
+                    "No se pudo completar la operacion en MySQL."
             );
 
             response.sendRedirect(
@@ -173,29 +215,126 @@ public class ClienteController extends HttpServlet {
     }
 
     // ==========================================
-    // LISTAR / BUSCAR
+    // LISTAR Y BUSCAR CON PAGINACION
     // ==========================================
 
     private void listarClientes(
             HttpServletRequest request,
-            HttpServletResponse response,
-            boolean buscar)
+            HttpServletResponse response)
             throws ServletException, IOException {
 
         String texto = request.getParameter("texto");
 
-        List<Cliente> clientes;
-
-        if (buscar && texto != null && !texto.isBlank()) {
-            clientes = clienteRepository.buscar(texto);
-        } else {
-            clientes = clienteRepository.listar();
+        if (texto == null) {
+            texto = "";
         }
 
-        request.setAttribute("clientes", clientes);
+        texto = texto.trim();
+
+        // PAGINA SOLICITADA
+        int pagina = 1;
+
+        try {
+
+            String parametroPagina =
+                    request.getParameter("pagina");
+
+            if (parametroPagina != null
+                    && !parametroPagina.isBlank()) {
+
+                pagina = Integer.parseInt(
+                        parametroPagina
+                );
+            }
+
+        } catch (NumberFormatException e) {
+
+            pagina = 1;
+        }
+
+        if (pagina < 1) {
+            pagina = 1;
+        }
+
+        // ======================================
+        // CONTAR REGISTROS
+        // ======================================
+
+        long totalRegistros =
+                clienteRepository.contarClientes(texto);
+
+        long totalPaginasCalculado =
+                (totalRegistros + TAMANIO_PAGINA - 1)
+                / TAMANIO_PAGINA;
+
+        int totalPaginas = (int) Math.max(
+                1L,
+                Math.min(
+                        Integer.MAX_VALUE,
+                        totalPaginasCalculado
+                )
+        );
+
+        if (pagina > totalPaginas) {
+            pagina = totalPaginas;
+        }
+
+        // ======================================
+        // CONSULTAR SOLO 20 REGISTROS
+        // ======================================
+
+        List<Cliente> clientes;
+
+        if (texto.isBlank()) {
+
+            clientes =
+                    clienteRepository.listarPaginado(
+                            pagina,
+                            TAMANIO_PAGINA
+                    );
+
+        } else {
+
+            clientes =
+                    clienteRepository.buscarPaginado(
+                            texto,
+                            pagina,
+                            TAMANIO_PAGINA
+                    );
+        }
+
+        // ======================================
+        // DATOS PARA clientes.jsp
+        // ======================================
+
+        request.setAttribute(
+                "clientes",
+                clientes
+        );
+
         request.setAttribute(
                 "textoBusqueda",
-                texto == null ? "" : texto
+                texto
+        );
+
+        request.setAttribute(
+                "paginaActual",
+                pagina
+        );
+
+        request.setAttribute(
+                "totalPaginas",
+                totalPaginas
+        );
+
+        request.setAttribute(
+                "totalRegistros",
+                totalRegistros
+        );
+
+        request.setAttribute(
+                "tamanioPagina",
+                TAMANIO_PAGINA
         );
 
         request.getRequestDispatcher(
@@ -204,7 +343,7 @@ public class ClienteController extends HttpServlet {
     }
 
     // ==========================================
-    // MOSTRAR FORMULARIO DE EDICIÓN
+    // MOSTRAR FORMULARIO DE EDICION
     // ==========================================
 
     private void mostrarEditar(
@@ -215,25 +354,47 @@ public class ClienteController extends HttpServlet {
         long id;
 
         try {
-            id = Long.parseLong(request.getParameter("id"));
-        } catch (Exception e) {
-            response.sendRedirect(
-                    request.getContextPath() + "/ClienteController"
+
+            id = Long.parseLong(
+                    request.getParameter("id")
             );
+
+            if (id <= 0) {
+                throw new NumberFormatException();
+            }
+
+        } catch (NumberFormatException e) {
+
+            response.sendRedirect(
+                    request.getContextPath()
+                    + "/ClienteController?accion=buscar"
+            );
+
             return;
         }
 
-        Cliente cliente = clienteRepository.buscarPorId(id);
+        Cliente cliente =
+                clienteRepository.buscarPorId(id);
 
         if (cliente == null) {
+
             response.sendRedirect(
-                    request.getContextPath() + "/ClienteController"
+                    request.getContextPath()
+                    + "/ClienteController?accion=buscar"
             );
+
             return;
         }
 
-        request.setAttribute("clienteEditar", cliente);
-        request.setAttribute("modo", "editar");
+        request.setAttribute(
+                "clienteEditar",
+                cliente
+        );
+
+        request.setAttribute(
+                "modo",
+                "editar"
+        );
 
         request.getRequestDispatcher(
                 "/cliente-form.jsp"
@@ -241,7 +402,7 @@ public class ClienteController extends HttpServlet {
     }
 
     // ==========================================
-    // REGISTRAR / ACTUALIZAR
+    // REGISTRAR / ACTUALIZAR CLIENTE
     // ==========================================
 
     private void guardarCliente(
@@ -265,8 +426,10 @@ public class ClienteController extends HttpServlet {
             );
 
             response.sendRedirect(
-                    request.getContextPath() + "/ClienteController"
+                    request.getContextPath()
+                    + "/ClienteController"
             );
+
             return;
         }
 
@@ -277,8 +440,11 @@ public class ClienteController extends HttpServlet {
         cliente.setDni(dni.trim());
 
         try {
+
             cliente.setIdSexo(
-                    convertirEntero(request.getParameter("idSexo"))
+                    convertirEntero(
+                            request.getParameter("idSexo")
+                    )
             );
 
             cliente.setIdEstadoCivil(
@@ -288,34 +454,40 @@ public class ClienteController extends HttpServlet {
             );
 
             if (editar) {
+
                 cliente.setIdCliente(
                         Long.parseLong(
                                 request.getParameter("idCliente")
                         )
                 );
 
-                Cliente existente = clienteRepository.buscarPorId(
-                        cliente.getIdCliente()
-                );
+                Cliente existente =
+                        clienteRepository.buscarPorId(
+                                cliente.getIdCliente()
+                        );
 
                 if (existente == null) {
+
                     throw new IllegalArgumentException(
                             "El cliente no existe."
                     );
                 }
 
-                String estado = request.getParameter("estado");
+                String estado =
+                        request.getParameter("estado");
 
                 if (!"Activo".equals(estado)
                         && !"Inactivo".equals(estado)) {
+
                     throw new IllegalArgumentException(
-                            "Estado no válido."
+                            "Estado no valido."
                     );
                 }
 
                 cliente.setEstado(estado);
 
             } else {
+
                 cliente.setEstado("Activo");
             }
 
@@ -323,24 +495,31 @@ public class ClienteController extends HttpServlet {
 
             sesion.setAttribute(
                     "mensajeError",
-                    "Los datos ingresados no son válidos."
+                    "Los datos ingresados no son validos."
             );
 
             response.sendRedirect(
-                    request.getContextPath() + "/ClienteController"
+                    request.getContextPath()
+                    + "/ClienteController"
             );
+
             return;
         }
 
         boolean correcto;
 
         if (editar) {
-            correcto = clienteRepository.actualizar(cliente);
+
+            correcto =
+                    clienteRepository.actualizar(cliente);
+
         } else {
-            correcto = clienteRepository.registrar(
-                    cliente,
-                    (String) sesion.getAttribute("usuario")
-            );
+
+            correcto =
+                    clienteRepository.registrar(
+                            cliente,
+                            (String) sesion.getAttribute("usuario")
+                    );
         }
 
         sesion.setAttribute(
@@ -352,13 +531,14 @@ public class ClienteController extends HttpServlet {
                         : "No se pudo guardar el cliente."
         );
 
+        // REGRESAR A LA PANTALLA DE DOS BOTONES
         response.sendRedirect(
                 request.getContextPath() + "/ClienteController"
         );
     }
 
     // ==========================================
-    // DESACTIVACIÓN LÓGICA
+    // DESACTIVACION LOGICA
     // ==========================================
 
     private void desactivarCliente(
@@ -368,11 +548,17 @@ public class ClienteController extends HttpServlet {
             throws IOException {
 
         try {
+
             long id = Long.parseLong(
                     request.getParameter("idCliente")
             );
 
-            boolean correcto = clienteRepository.eliminar(id);
+            if (id <= 0) {
+                throw new NumberFormatException();
+            }
+
+            boolean correcto =
+                    clienteRepository.eliminar(id);
 
             sesion.setAttribute(
                     correcto ? "mensajeExito" : "mensajeError",
@@ -382,9 +568,10 @@ public class ClienteController extends HttpServlet {
             );
 
         } catch (NumberFormatException e) {
+
             sesion.setAttribute(
                     "mensajeError",
-                    "Identificador de cliente no válido."
+                    "Identificador de cliente no valido."
             );
         }
 
@@ -394,7 +581,7 @@ public class ClienteController extends HttpServlet {
     }
 
     // ==========================================
-    // CONVERSIÓN DE CAMPOS OPCIONALES
+    // CONVERTIR CAMPOS OPCIONALES
     // ==========================================
 
     private Integer convertirEntero(String texto) {
