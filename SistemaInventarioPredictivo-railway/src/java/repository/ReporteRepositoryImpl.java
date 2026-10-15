@@ -9,7 +9,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -35,17 +34,12 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             PreparedStatement ps = conexion.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-
-            return 0;
+            return rs.next() ? rs.getInt(1) : 0;
         }
     }
 
     // ==========================================
-    // 2. OBTENER TOTAL DE VENTAS
+    // 2. OBTENER MONTO TOTAL DE VENTAS
     // ==========================================
 
     @Override
@@ -62,11 +56,8 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             PreparedStatement ps = conexion.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
             if (rs.next()) {
-
                 BigDecimal total = rs.getBigDecimal(1);
-
                 return total == null
                         ? BigDecimal.ZERO
                         : total;
@@ -94,12 +85,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             PreparedStatement ps = conexion.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-
-            return 0;
+            return rs.next() ? rs.getInt(1) : 0;
         }
     }
 
@@ -125,12 +111,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             PreparedStatement ps = conexion.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-
-            return 0;
+            return rs.next() ? rs.getInt(1) : 0;
         }
     }
 
@@ -161,7 +142,6 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             Connection conexion = ConexionBD.getConexion();
             PreparedStatement ps = conexion.prepareStatement(sql)
         ) {
-
             ps.setDate(
                     1,
                     java.sql.Date.valueOf(fechaInicio)
@@ -212,7 +192,6 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             PreparedStatement ps = conexion.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
             return convertirResultados(rs);
         }
     }
@@ -250,7 +229,6 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             Connection conexion = ConexionBD.getConexion();
             PreparedStatement ps = conexion.prepareStatement(sql)
         ) {
-
             ps.setDate(
                     1,
                     java.sql.Date.valueOf(fechaInicio)
@@ -275,27 +253,26 @@ public class ReporteRepositoryImpl implements ReporteRepository {
     public List<Map<String, Object>> obtenerReporteClientes()
             throws SQLException {
 
-        /*
-         * Cliente tiene:
-         * - idCliente
-         * - idDatosPersonales
-         *
-         * No seleccionamos columnas desconocidas
-         * de DatosPersonales hasta verificar
-         * su estructura real.
-         */
-
         String sql =
                 "SELECT " +
                 "c.idCliente AS idCliente, " +
                 "c.idDatosPersonales AS idDatosPersonales, " +
+                "CONCAT_WS(' ', dp.nombres, dp.apellidos) AS nombre, " +
+                "dp.dni AS dni, " +
                 "COUNT(v.idVenta) AS cantidadCompras, " +
                 "COALESCE(SUM(v.total), 0) AS montoComprado " +
                 "FROM Cliente c " +
+                "LEFT JOIN DatosPersonales dp " +
+                "ON dp.idDatosPersonales = c.idDatosPersonales " +
                 "LEFT JOIN Venta v " +
                 "ON v.idCliente = c.idCliente " +
                 "AND v.estado = 'Registrada' " +
-                "GROUP BY c.idCliente, c.idDatosPersonales " +
+                "GROUP BY " +
+                "c.idCliente, " +
+                "c.idDatosPersonales, " +
+                "dp.nombres, " +
+                "dp.apellidos, " +
+                "dp.dni " +
                 "ORDER BY cantidadCompras DESC, montoComprado DESC";
 
         try (
@@ -303,7 +280,6 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             PreparedStatement ps = conexion.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
             return convertirResultados(rs);
         }
     }
@@ -324,9 +300,13 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "p.ruc AS ruc, " +
                 "p.razonSocial AS razonSocial, " +
                 "p.nombreComercial AS nombreComercial, " +
+                "CONCAT_WS(' ', dp.nombres, dp.apellidos) AS nombre, " +
+                "dp.dni AS dni, " +
                 "p.estado AS estado, " +
                 "p.fechaCreacion AS fechaCreacion " +
                 "FROM Proveedor p " +
+                "LEFT JOIN DatosPersonales dp " +
+                "ON dp.idDatosPersonales = p.idDatosPersonales " +
                 "ORDER BY p.idProveedor DESC";
 
         try (
@@ -334,7 +314,6 @@ public class ReporteRepositoryImpl implements ReporteRepository {
             PreparedStatement ps = conexion.prepareStatement(sql);
             ResultSet rs = ps.executeQuery()
         ) {
-
             return convertirResultados(rs);
         }
     }
@@ -367,12 +346,9 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 String nombreColumna =
                         metadata.getColumnLabel(i);
 
-                Object valor =
-                        rs.getObject(i);
-
                 fila.put(
                         nombreColumna,
-                        valor
+                        rs.getObject(i)
                 );
             }
 
