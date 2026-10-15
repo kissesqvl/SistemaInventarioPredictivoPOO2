@@ -1,76 +1,71 @@
+
 <%@page import="java.util.List"%>
 <%@page import="model.Usuario"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
-<%
-    // =========================================================
-    // VALIDAR SESIÓN
-    // =========================================================
+<%!
+    private String escapar(String valor) {
+        if (valor == null) return "";
+        return valor.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#39;");
+    }
+%>
 
-    if (session.getAttribute("usuario") == null) {
+<%
+    jakarta.servlet.http.HttpSession sesion =
+            request.getSession(false);
+
+    if (sesion == null
+            || sesion.getAttribute("usuario") == null) {
+
         response.sendRedirect(
                 request.getContextPath() + "/login.jsp"
         );
         return;
     }
 
-    String nombreUsuario =
-            (String) session.getAttribute("usuario");
+    String nombreUsuario = String.valueOf(
+            sesion.getAttribute("usuario")
+    );
 
     Integer idRolSesion =
-            (Integer) session.getAttribute("idRol");
+            (Integer) sesion.getAttribute("idRol");
 
     String nombreRol =
-            (idRolSesion != null && idRolSesion == 1)
-            ? "Administrador"
-            : "Usuario";
-
-
-    // =========================================================
-    // LISTA DE USUARIOS
-    // =========================================================
+            idRolSesion != null && idRolSesion == 1
+            ? "Administrador" : "Usuario";
 
     List<Usuario> usuarios =
             (List<Usuario>) request.getAttribute("usuarios");
 
-
-    // =========================================================
-    // MENSAJES
-    // =========================================================
-
     String mensajeExito =
-            (String) session.getAttribute("mensajeExito");
+            (String) sesion.getAttribute("mensajeExito");
 
     String mensajeError =
-            (String) session.getAttribute("mensajeError");
+            (String) sesion.getAttribute("mensajeError");
 
     Boolean mostrarDeshacer =
-            (Boolean) session.getAttribute("mostrarDeshacer");
+            (Boolean) sesion.getAttribute("mostrarDeshacer");
 
+    sesion.removeAttribute("mensajeExito");
+    sesion.removeAttribute("mensajeError");
 
-    // Los mensajes se muestran una sola vez
-    session.removeAttribute("mensajeExito");
-    session.removeAttribute("mensajeError");
+    String contexto = request.getContextPath();
 %>
 
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>
-        Gestión de Usuarios | Sistema Inventario Predictivo
-    </title>
-
+    <title>Gestión de Usuarios | Inventario Predictivo</title>
 
     <style>
-
         * {
             margin: 0;
             padding: 0;
@@ -78,1369 +73,942 @@
             font-family: Arial, Helvetica, sans-serif;
         }
 
-
         body {
-
             min-height: 100vh;
-
-            background:
-                radial-gradient(
-                    circle at 80% 20%,
-                    rgba(124, 58, 237, 0.10),
-                    transparent 35%
-                ),
-                #09090f;
-
+            background: #09090f;
             color: #ffffff;
         }
 
+        .dashboard {
+            display: flex;
+            min-height: 100vh;
+        }
 
-        /* =====================================================
-           SIDEBAR
-           ===================================================== */
+        /* SIDEBAR UNIFICADA */
 
         .sidebar {
-
             position: fixed;
-
             top: 0;
             left: 0;
-
+            bottom: 0;
             width: 260px;
-            height: 100vh;
-
-            background: #11111a;
-
-            border-right:
-                1px solid rgba(255,255,255,0.08);
-
-            padding: 24px 16px;
-
-            overflow-y: auto;
-
-            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(
+                180deg, #171322, #100d18
+            );
+            border-right: 1px solid rgba(255,255,255,.08);
+            z-index: 100;
         }
 
+        .logo-area {
+            height: 85px;
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
 
         .logo {
-
+            width: 45px;
+            height: 45px;
             display: flex;
-
             align-items: center;
-
-            gap: 12px;
-
-            padding: 0 10px 24px 10px;
-
-            border-bottom:
-                1px solid rgba(255,255,255,0.08);
-        }
-
-
-        .logo-icon {
-
-            width: 42px;
-            height: 42px;
-
-            display: flex;
-
             justify-content: center;
-            align-items: center;
-
-            border-radius: 12px;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #7c3aed,
-                    #4f46e5
-                );
-
-            font-weight: bold;
-
+            margin-right: 12px;
+            border-radius: 13px;
             font-size: 18px;
-        }
-
-
-        .logo-text h2 {
-
-            font-size: 17px;
-        }
-
-
-        .logo-text span {
-
-            font-size: 11px;
-
-            color: #9292a6;
-        }
-
-
-        /* =====================================================
-           PERFIL
-           ===================================================== */
-
-        .perfil {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 12px;
-
-            padding: 22px 10px;
-        }
-
-
-        .avatar {
-
-            width: 42px;
-            height: 42px;
-
-            border-radius: 50%;
-
-            background: #7c3aed;
-
-            display: flex;
-
-            justify-content: center;
-            align-items: center;
-
             font-weight: bold;
-
-            text-transform: uppercase;
+            background: linear-gradient(
+                135deg, #7c3aed, #4f46e5
+            );
+            flex-shrink: 0;
         }
 
-
-        .perfil-info strong {
-
-            display: block;
-
+        .logo-info h2 {
             font-size: 14px;
-        }
-
-
-        .perfil-info span {
-
-            font-size: 12px;
-
-            color: #9292a6;
-        }
-
-
-        /* =====================================================
-           MENÚ
-           ===================================================== */
-
-        .menu-title {
-
-            font-size: 11px;
-
-            color: #68687b;
-
-            padding: 10px 12px;
-
-            text-transform: uppercase;
-
-            letter-spacing: 1px;
-        }
-
-
-        .menu-item {
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 12px;
-
-            width: 100%;
-
-            padding: 13px 14px;
-
-            margin-bottom: 5px;
-
-            color: #b7b7c9;
-
-            text-decoration: none;
-
-            border-radius: 10px;
-
-            font-size: 14px;
-
-            transition: 0.2s;
-        }
-
-
-        .menu-item:hover {
-
-            background:
-                rgba(124, 58, 237, 0.12);
-
-            color: #ffffff;
-        }
-
-
-        .menu-item.active {
-
-            background:
-                rgba(124, 58, 237, 0.20);
-
-            color: #a78bfa;
-
-            border:
-                1px solid rgba(124, 58, 237, 0.25);
-        }
-
-
-        .menu-icon {
-
-            width: 22px;
-
-            text-align: center;
-
-            font-size: 17px;
-        }
-
-
-        /* =====================================================
-           CONTENIDO
-           ===================================================== */
-
-        .main {
-
-            margin-left: 260px;
-
-            min-height: 100vh;
-
-            padding: 32px;
-        }
-
-
-        .breadcrumb {
-
-            color: #77778a;
-
-            font-size: 13px;
-
-            margin-bottom: 18px;
-        }
-
-
-        .breadcrumb a {
-
-            color: #a78bfa;
-
-            text-decoration: none;
-        }
-
-
-        .page-header {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-            gap: 20px;
-
-            margin-bottom: 28px;
-        }
-
-
-        .page-title h1 {
-
-            font-size: 28px;
-
-            margin-bottom: 8px;
-        }
-
-
-        .page-title p {
-
-            color: #9292a6;
-
-            font-size: 14px;
-        }
-
-
-        /* =====================================================
-           BOTONES
-           ===================================================== */
-
-        .btn {
-
-            display: inline-flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            gap: 8px;
-
-            border: none;
-
-            border-radius: 9px;
-
-            padding: 11px 17px;
-
-            cursor: pointer;
-
-            text-decoration: none;
-
-            font-size: 13px;
-
-            font-weight: bold;
-
-            transition: 0.2s;
-        }
-
-
-        .btn-primary {
-
-            color: #ffffff;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #7c3aed,
-                    #4f46e5
-                );
-        }
-
-
-        .btn-primary:hover {
-
-            transform: translateY(-1px);
-
-            box-shadow:
-                0 8px 20px
-                rgba(124, 58, 237, 0.25);
-        }
-
-
-        .btn-secondary {
-
-            background: #242433;
-
-            color: #ffffff;
-
-            border:
-                1px solid rgba(255,255,255,0.08);
-        }
-
-
-        .btn-secondary:hover {
-
-            background: #303043;
-        }
-
-
-        .header-actions {
-
-            display: flex;
-
-            gap: 10px;
-
-            flex-wrap: wrap;
-        }
-
-
-        /* =====================================================
-           MENSAJES
-           ===================================================== */
-
-        .alert {
-
-            padding: 14px 18px;
-
-            border-radius: 10px;
-
-            margin-bottom: 20px;
-
-            font-size: 14px;
-        }
-
-
-        .alert-success {
-
-            background:
-                rgba(34, 197, 94, 0.10);
-
-            border:
-                1px solid rgba(34, 197, 94, 0.30);
-
-            color: #86efac;
-        }
-
-
-        .alert-error {
-
-            background:
-                rgba(239, 68, 68, 0.10);
-
-            border:
-                1px solid rgba(239, 68, 68, 0.30);
-
-            color: #fca5a5;
-        }
-
-
-        /* =====================================================
-           CONTENEDOR
-           ===================================================== */
-
-        .panel {
-
-            background:
-                rgba(17, 17, 26, 0.92);
-
-            border:
-                1px solid rgba(255,255,255,0.07);
-
-            border-radius: 15px;
-
-            overflow: hidden;
-
-            box-shadow:
-                0 18px 50px
-                rgba(0,0,0,0.20);
-        }
-
-
-        /* =====================================================
-           TOOLBAR
-           ===================================================== */
-
-        .toolbar {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            align-items: center;
-
-            gap: 20px;
-
-            padding: 20px;
-
-            border-bottom:
-                1px solid rgba(255,255,255,0.07);
-        }
-
-
-        .toolbar-title h3 {
-
-            font-size: 16px;
-
             margin-bottom: 4px;
         }
 
+        .logo-info span {
+            font-size: 10px;
+            color: #8f8fa3;
+        }
+
+        .usuario-area {
+            padding: 28px 24px 24px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,.06);
+        }
+
+        .avatar {
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 28px;
+            font-weight: bold;
+            background: linear-gradient(
+                135deg, #7c3aed, #4f46e5
+            );
+        }
+
+        .usuario-area h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            overflow-wrap: anywhere;
+        }
+
+        .usuario-area span {
+            font-size: 12px;
+            color: #9a9aac;
+        }
+
+        .menu {
+            padding: 20px 14px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-titulo {
+            display: block;
+            padding: 0 12px 10px;
+            color: #66667a;
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1.2px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 13px 15px;
+            margin-bottom: 6px;
+            border-radius: 10px;
+            text-decoration: none;
+            color: #aaaabb;
+            font-size: 14px;
+            transition: background .2s;
+        }
+
+        .menu-item:hover {
+            background: rgba(124,58,237,.15);
+            color: white;
+        }
+
+        .menu-item.activo {
+            color: white;
+            background: linear-gradient(
+                90deg,
+                rgba(124,58,237,.35),
+                rgba(124,58,237,.08)
+            );
+            border-left: 3px solid #8b5cf6;
+        }
+
+        .menu-icono {
+            width: 25px;
+            text-align: center;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
+
+        /* CONTENIDO PRINCIPAL */
+
+        .contenido {
+            margin-left: 260px;
+            width: calc(100% - 260px);
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at 80% 20%,
+                    rgba(124,58,237,.13),
+                    transparent 30%
+                ),
+                #09090f;
+        }
+
+        .header {
+            min-height: 85px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 20px 38px;
+            background: rgba(15,15,24,.88);
+            border-bottom: 1px solid rgba(255,255,255,.07);
+        }
+
+        .header h1 {
+            font-size: 20px;
+        }
+
+        .header-usuario {
+            color: #aaaabb;
+            font-size: 13px;
+        }
+
+        .principal {
+            padding: 42px;
+            max-width: 1700px;
+        }
+
+        .titulo-area {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .titulo h2 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .titulo p {
+            color: #9292a5;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* BOTONES */
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: 0;
+            border-radius: 9px;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background: #7c3aed;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #6d28d9;
+        }
+
+        .btn-secondary {
+            background: #272238;
+            color: #ddd6fe;
+        }
+
+        .btn-secondary:hover {
+            background: #342c4b;
+        }
+
+        /* MENSAJES */
+
+        .alert {
+            padding: 14px 18px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: rgba(34,197,94,.10);
+            border: 1px solid rgba(34,197,94,.30);
+            color: #86efac;
+        }
+
+        .alert-error {
+            background: rgba(239,68,68,.10);
+            border: 1px solid rgba(239,68,68,.30);
+            color: #fca5a5;
+        }
+
+        /* PANEL DE USUARIOS */
+
+        .panel {
+            background: linear-gradient(
+                145deg, #1a1728, #12111d
+            );
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 25px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+
+        .toolbar-title h3 {
+            font-size: 17px;
+            margin-bottom: 8px;
+        }
 
         .toolbar-title span {
-
-            color: #77778a;
-
+            color: #9292a5;
             font-size: 12px;
         }
 
-
         .search-box {
-
             width: 300px;
-
-            position: relative;
+            max-width: 100%;
         }
 
-
         .search-box input {
-
             width: 100%;
-
-            padding: 11px 14px;
-
+            padding: 13px 14px;
             border-radius: 9px;
-
-            border:
-                1px solid rgba(255,255,255,0.10);
-
-            background: #0d0d15;
-
-            color: #ffffff;
-
+            border: 1px solid #373044;
+            background: #11111c;
+            color: white;
+            font-size: 13px;
             outline: none;
         }
 
-
         .search-box input:focus {
-
-            border-color: #7c3aed;
+            border-color: #8b5cf6;
         }
-
 
         .search-box input::placeholder {
-
-            color: #666679;
+            color: #77778a;
         }
 
-
-        /* =====================================================
-           TABLA
-           ===================================================== */
+        /* TABLA */
 
         .table-container {
-
             width: 100%;
-
             overflow-x: auto;
         }
 
-
         table {
-
             width: 100%;
-
             border-collapse: collapse;
-
             min-width: 850px;
         }
 
-
         th {
-
             text-align: left;
-
-            padding: 14px 18px;
-
-            color: #77778a;
-
+            padding: 16px 20px;
+            background: #11101a;
+            color: #9292a5;
             font-size: 11px;
-
             text-transform: uppercase;
-
-            letter-spacing: 0.6px;
-
-            background: #0d0d15;
+            letter-spacing: .7px;
         }
-
 
         td {
-
-            padding: 16px 18px;
-
-            border-top:
-                1px solid rgba(255,255,255,0.05);
-
+            padding: 17px 20px;
+            border-top: 1px solid rgba(255,255,255,.06);
+            color: #dedee8;
             font-size: 13px;
-
-            color: #d5d5df;
         }
-
-
-        tbody tr {
-
-            transition: 0.2s;
-        }
-
 
         tbody tr:hover {
-
-            background:
-                rgba(124,58,237,0.05);
+            background: rgba(124,58,237,.07);
         }
-
 
         .usuario-info {
-
             display: flex;
-
             align-items: center;
-
-            gap: 10px;
+            gap: 12px;
         }
-
 
         .usuario-mini-avatar {
-
-            width: 34px;
-            height: 34px;
-
-            border-radius: 9px;
-
-            background:
-                rgba(124,58,237,0.16);
-
-            color: #a78bfa;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            font-weight: bold;
-
-            text-transform: uppercase;
-        }
-
-
-        /* =====================================================
-           ESTADOS
-           ===================================================== */
-
-        .badge {
-
-            display: inline-flex;
-
-            align-items: center;
-
-            padding: 5px 9px;
-
-            border-radius: 20px;
-
-            font-size: 11px;
-
-            font-weight: bold;
-        }
-
-
-        .badge-active {
-
-            color: #86efac;
-
-            background:
-                rgba(34,197,94,0.10);
-
-            border:
-                1px solid rgba(34,197,94,0.20);
-        }
-
-
-        .badge-inactive {
-
-            color: #fca5a5;
-
-            background:
-                rgba(239,68,68,0.10);
-
-            border:
-                1px solid rgba(239,68,68,0.20);
-        }
-
-
-        .badge-blocked {
-
-            color: #fcd34d;
-
-            background:
-                rgba(245,158,11,0.10);
-
-            border:
-                1px solid rgba(245,158,11,0.20);
-        }
-
-
-        /* =====================================================
-           ACCIONES
-           ===================================================== */
-
-        .actions {
-
-            display: flex;
-
-            gap: 7px;
-        }
-
-
-        .action-btn {
-
-            padding: 7px 10px;
-
-            border-radius: 7px;
-
-            text-decoration: none;
-
-            font-size: 12px;
-
-            border:
-                1px solid rgba(255,255,255,0.08);
-
-            transition: 0.2s;
-        }
-
-
-        .edit-btn {
-
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: rgba(124,58,237,.20);
             color: #c4b5fd;
-
-            background:
-                rgba(124,58,237,0.10);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
         }
 
-
-        .edit-btn:hover {
-
-            background:
-                rgba(124,58,237,0.22);
+        .usuario-info strong {
+            overflow-wrap: anywhere;
         }
 
+        /* ESTADOS */
 
-        .delete-btn {
+        .estado {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+        }
 
+        .estado-activo {
+            background: rgba(34,197,94,.10);
+            color: #86efac;
+            border: 1px solid rgba(34,197,94,.20);
+        }
+
+        .estado-inactivo {
+            background: rgba(239,68,68,.10);
             color: #fca5a5;
-
-            background:
-                rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,.20);
         }
 
-
-        .delete-btn:hover {
-
-            background:
-                rgba(239,68,68,0.18);
+        .estado-bloqueado {
+            background: rgba(245,158,11,.10);
+            color: #fcd34d;
+            border: 1px solid rgba(245,158,11,.20);
         }
 
+        /* ACCIONES */
 
-        /* =====================================================
-           SIN REGISTROS
-           ===================================================== */
+        .acciones {
+            display: flex;
+            gap: 8px;
+        }
 
-        .empty {
+        .btn-accion {
+            display: inline-block;
+            padding: 8px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 12px;
+            border: 1px solid rgba(255,255,255,.08);
+        }
 
+        .btn-editar {
+            color: #c4b5fd;
+            background: rgba(124,58,237,.15);
+        }
+
+        .btn-editar:hover {
+            background: rgba(124,58,237,.28);
+        }
+
+        .btn-eliminar {
+            color: #fca5a5;
+            background: rgba(239,68,68,.10);
+        }
+
+        .btn-eliminar:hover {
+            background: rgba(239,68,68,.20);
+        }
+
+        .vacio {
             padding: 60px 20px;
-
             text-align: center;
-
-            color: #77778a;
+            color: #9292a5;
         }
 
-
-        .empty-icon {
-
+        .vacio-icono {
             font-size: 40px;
-
-            margin-bottom: 12px;
+            margin-bottom: 15px;
         }
 
+        .sin-resultados {
+            display: none;
+            padding: 18px;
+            text-align: center;
+            color: #9292a5;
+            font-size: 13px;
+            border-top: 1px solid rgba(255,255,255,.06);
+        }
 
-        /* =====================================================
-           RESPONSIVE
-           ===================================================== */
+        /* RESPONSIVE */
 
-        @media (max-width: 900px) {
-
+        @media (max-width: 850px) {
             .sidebar {
-
-                width: 220px;
+                width: 75px;
             }
 
+            .logo-info,
+            .usuario-area h3,
+            .usuario-area span,
+            .menu-titulo {
+                display: none;
+            }
 
-            .main {
+            .logo-area {
+                justify-content: center;
+                padding: 0;
+            }
 
-                margin-left: 220px;
+            .logo {
+                margin: 0;
+            }
 
+            .contenido {
+                margin-left: 75px;
+                width: calc(100% - 75px);
+            }
+
+            .menu-item {
+                font-size: 0;
+                justify-content: center;
+            }
+
+            .menu-icono {
+                font-size: 19px;
+            }
+
+            .principal {
                 padding: 22px;
             }
 
-
-            .page-header {
-
-                align-items: flex-start;
-
-                flex-direction: column;
+            .header {
+                padding: 20px 22px;
             }
 
+            .titulo-area,
+            .toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
 
             .toolbar {
-
-                align-items: flex-start;
-
-                flex-direction: column;
+                padding: 20px;
             }
 
-
             .search-box {
-
                 width: 100%;
             }
         }
 
+        @media (max-width: 500px) {
+            .header-usuario {
+                display: none;
+            }
+
+            .titulo h2 {
+                font-size: 23px;
+            }
+
+            .header-actions {
+                width: 100%;
+            }
+        }
     </style>
-
 </head>
-
 
 <body>
 
+<div class="dashboard">
 
-<!-- =========================================================
-     SIDEBAR
-     ========================================================= -->
+    <!-- SIDEBAR UNIFICADA -->
 
-<aside class="sidebar">
+    <aside class="sidebar">
 
+        <div class="logo-area">
+            <div class="logo">SIP</div>
 
-    <div class="logo">
-
-        <div class="logo-icon">
-            SIP
+            <div class="logo-info">
+                <h2>Inventario Predictivo</h2>
+                <span>Portal Corporativo</span>
+            </div>
         </div>
 
-        <div class="logo-text">
+        <div class="usuario-area">
 
-            <h2>Inventario</h2>
+            <div class="avatar">
+                <%= escapar(
+                        nombreUsuario.isEmpty()
+                        ? "U"
+                        : nombreUsuario.substring(0, 1).toUpperCase()
+                    ) %>
+            </div>
 
-            <span>
-                Sistema Predictivo
+            <h3><%= escapar(nombreUsuario) %></h3>
+            <span><%= nombreRol %></span>
+
+        </div>
+
+        <nav class="menu">
+
+            <span class="menu-titulo">
+                MENÚ PRINCIPAL
             </span>
 
-        </div>
-
-    </div>
-
-
-    <div class="perfil">
-
-        <div class="avatar">
-
-            <%= nombreUsuario != null
-                    && !nombreUsuario.isEmpty()
-                    ? nombreUsuario.substring(0,1)
-                    : "U" %>
-
-        </div>
-
-
-        <div class="perfil-info">
-
-            <strong>
-                <%= nombreUsuario %>
-            </strong>
-
-            <span>
-                <%= nombreRol %>
-            </span>
-
-        </div>
-
-    </div>
-
-
-    <div class="menu-title">
-        Menú principal
-    </div>
-
-
-    <a href="<%= request.getContextPath() %>/MenuController"
-       class="menu-item">
-
-        <span class="menu-icon">⌂</span>
-
-        Inicio
-
-    </a>
-
-
-    <% if (idRolSesion != null && idRolSesion == 1) { %>
-
-        <a href="<%= request.getContextPath() %>/UsuarioController"
-           class="menu-item active">
-
-            <span class="menu-icon">♟</span>
-
-            Gestión de Usuarios
-
-        </a>
-
-    <% } %>
-
-
-    <a href="<%= request.getContextPath() %>/MenuController?accion=clientes"
-       class="menu-item">
-
-        <span class="menu-icon">♙</span>
-
-        Clientes
-
-    </a>
-
-
-    <a href="<%= request.getContextPath() %>/MenuController?accion=proveedores"
-       class="menu-item">
-
-        <span class="menu-icon">▣</span>
-
-        Proveedores
-
-    </a>
-
-
-    <a href="<%= request.getContextPath() %>/MenuController?accion=mercaderia"
-       class="menu-item">
-
-        <span class="menu-icon">□</span>
-
-        Mercadería/Servicios
-
-    </a>
-
-
-    <a href="<%= request.getContextPath() %>/MenuController?accion=ventas"
-       class="menu-item">
-
-        <span class="menu-icon">$</span>
-
-        Ventas
-
-    </a>
-
-
-    <a href="<%= request.getContextPath() %>/MenuController?accion=reportes"
-       class="menu-item">
-
-        <span class="menu-icon">▥</span>
-
-        Reportes
-
-    </a>
-
-
-</aside>
-
-
-
-<!-- =========================================================
-     CONTENIDO PRINCIPAL
-     ========================================================= -->
-
-<main class="main">
-
-
-    <div class="breadcrumb">
-
-        <a href="<%= request.getContextPath() %>/MenuController">
-            Inicio
-        </a>
-
-        &nbsp;/&nbsp;
-
-        Gestión de Usuarios
-
-    </div>
-
-
-    <div class="page-header">
-
-
-        <div class="page-title">
-
-            <h1>
+            <a href="<%= contexto %>/MenuController"
+               class="menu-item">
+                <span class="menu-icono">🏠</span>
+                Inicio
+            </a>
+
+            <% if (idRolSesion != null && idRolSesion == 1) { %>
+
+            <a href="<%= contexto %>/MenuController?accion=usuarios"
+               class="menu-item activo">
+                <span class="menu-icono">👤</span>
                 Gestión de Usuarios
-            </h1>
-
-            <p>
-                Administra las cuentas de acceso al sistema,
-                roles, permisos y estados.
-            </p>
-
-        </div>
-
-
-        <div class="header-actions">
-
-
-            <% if (Boolean.TRUE.equals(mostrarDeshacer)) { %>
-
-                <a
-                    href="<%= request.getContextPath() %>/UsuarioController?accion=deshacer"
-                    class="btn btn-secondary">
-
-                    ↶ Deshacer último cambio
-
-                </a>
+            </a>
 
             <% } %>
 
-
-            <a
-                href="<%= request.getContextPath() %>/UsuarioController?accion=nuevo"
-                class="btn btn-primary">
-
-                + Nuevo Usuario
-
+            <a href="<%= contexto %>/MenuController?accion=clientes"
+               class="menu-item">
+                <span class="menu-icono">👥</span>
+                Clientes
             </a>
 
+            <a href="<%= contexto %>/MenuController?accion=proveedores"
+               class="menu-item">
+                <span class="menu-icono">🚚</span>
+                Proveedores
+            </a>
 
-        </div>
+            <a href="<%= contexto %>/MenuController?accion=mercaderia"
+               class="menu-item">
+                <span class="menu-icono">📦</span>
+                Mercadería / Servicios
+            </a>
 
-    </div>
+            <a href="<%= contexto %>/MenuController?accion=ventas"
+               class="menu-item">
+                <span class="menu-icono">🛒</span>
+                Ventas
+            </a>
 
+            <a href="<%= contexto %>/MenuController?accion=reportes"
+               class="menu-item">
+                <span class="menu-icono">📊</span>
+                Reportes
+            </a>
 
+        </nav>
+    </aside>
 
-    <!-- =====================================================
-         MENSAJE DE ÉXITO
-         ===================================================== -->
+    <!-- CONTENIDO -->
 
-    <% if (mensajeExito != null) { %>
+    <section class="contenido">
 
-        <div class="alert alert-success">
+        <header class="header">
 
-            ✓ <%= mensajeExito %>
+            <h1>Gestión de Usuarios</h1>
 
-        </div>
-
-    <% } %>
-
-
-
-    <!-- =====================================================
-         MENSAJE DE ERROR
-         ===================================================== -->
-
-    <% if (mensajeError != null) { %>
-
-        <div class="alert alert-error">
-
-            ⚠ <%= mensajeError %>
-
-        </div>
-
-    <% } %>
-
-
-
-    <!-- =====================================================
-         PANEL DE USUARIOS
-         ===================================================== -->
-
-    <section class="panel">
-
-
-        <div class="toolbar">
-
-
-            <div class="toolbar-title">
-
-                <h3>
-                    Usuarios registrados
-                </h3>
-
-                <span>
-
-                    <%= usuarios != null
-                            ? usuarios.size()
-                            : 0 %>
-
-                    usuario(s) encontrado(s)
-
-                </span>
-
+            <div class="header-usuario">
+                ● <%= escapar(nombreUsuario) %>
             </div>
 
+        </header>
 
-            <div class="search-box">
+        <main class="principal">
 
-                <input
-                    type="text"
-                    id="buscarUsuario"
-                    placeholder="Buscar usuario o correo..."
-                    onkeyup="filtrarUsuarios()">
+            <div class="titulo-area">
 
-            </div>
+                <div class="titulo">
 
-
-        </div>
-
-
-
-        <div class="table-container">
-
-
-            <% if (usuarios != null && !usuarios.isEmpty()) { %>
-
-
-                <table id="tablaUsuarios">
-
-
-                    <thead>
-
-                        <tr>
-
-                            <th>ID</th>
-
-                            <th>Usuario</th>
-
-                            <th>Correo</th>
-
-                            <th>Rol</th>
-
-                            <th>Estado</th>
-
-                            <th>Acciones</th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-
-                    <% for (Usuario usuario : usuarios) { %>
-
-
-                        <tr>
-
-
-                            <td>
-
-                                #<%= usuario.getIdUsuario() %>
-
-                            </td>
-
-
-                            <td>
-
-
-                                <div class="usuario-info">
-
-
-                                    <div class="usuario-mini-avatar">
-
-                                        <%
-                                            String usuarioNombre =
-                                                    usuario.getNombreUsuario();
-
-                                            String inicial =
-                                                    usuarioNombre != null
-                                                    && !usuarioNombre.isEmpty()
-                                                    ? usuarioNombre.substring(0,1)
-                                                    : "U";
-                                        %>
-
-                                        <%= inicial %>
-
-                                    </div>
-
-
-                                    <strong>
-
-                                        <%= usuario.getNombreUsuario() %>
-
-                                    </strong>
-
-
-                                </div>
-
-
-                            </td>
-
-
-                            <td>
-
-                                <%= usuario.getCorreo() != null
-                                        ? usuario.getCorreo()
-                                        : "-" %>
-
-                            </td>
-
-
-                            <td>
-
-                                <%
-                                    if (usuario.getIdRol() == 1) {
-                                %>
-
-                                    Administrador
-
-                                <%
-                                    } else {
-                                %>
-
-                                    Rol <%= usuario.getIdRol() %>
-
-                                <%
-                                    }
-                                %>
-
-                            </td>
-
-
-                            <td>
-
-
-                                <% if (usuario.isBloqueado()) { %>
-
-                                    <span class="badge badge-blocked">
-
-                                        Bloqueado
-
-                                    </span>
-
-
-                                <% } else if (usuario.isEstado()) { %>
-
-                                    <span class="badge badge-active">
-
-                                        Activo
-
-                                    </span>
-
-
-                                <% } else { %>
-
-                                    <span class="badge badge-inactive">
-
-                                        Inactivo
-
-                                    </span>
-
-                                <% } %>
-
-
-                            </td>
-
-
-                            <td>
-
-
-                                <div class="actions">
-
-
-                                    <a
-                                        href="<%= request.getContextPath() %>/UsuarioController?accion=editar&id=<%= usuario.getIdUsuario() %>"
-                                        class="action-btn edit-btn">
-
-                                        Editar
-
-                                    </a>
-
-
-                                    <a
-                                        href="<%= request.getContextPath() %>/UsuarioController?accion=eliminar&id=<%= usuario.getIdUsuario() %>"
-                                        class="action-btn delete-btn"
-                                        onclick="return confirmarEliminacion('<%= usuario.getNombreUsuario() %>');">
-
-                                        Eliminar
-
-                                    </a>
-
-
-                                </div>
-
-
-                            </td>
-
-
-                        </tr>
-
-
-                    <% } %>
-
-
-                    </tbody>
-
-
-                </table>
-
-
-            <% } else { %>
-
-
-                <div class="empty">
-
-                    <div class="empty-icon">
-                        ♙
-                    </div>
-
-                    <h3>
-                        No hay usuarios registrados
-                    </h3>
-
-                    <br>
+                    <h2>Usuarios</h2>
 
                     <p>
-                        Registra un nuevo usuario para comenzar.
+                        Administra las cuentas de acceso al
+                        sistema, sus roles, permisos y estados.
                     </p>
 
                 </div>
 
+                <div class="header-actions">
+
+                    <% if (Boolean.TRUE.equals(mostrarDeshacer)) { %>
+
+                    <a href="<%= contexto %>/UsuarioController?accion=deshacer"
+                       class="btn btn-secondary">
+                        ↶ Deshacer último cambio
+                    </a>
+
+                    <% } %>
+
+                    <a href="<%= contexto %>/UsuarioController?accion=nuevo"
+                       class="btn btn-primary">
+                        + Nuevo Usuario
+                    </a>
+
+                </div>
+
+            </div>
+
+            <!-- MENSAJES -->
+
+            <% if (mensajeExito != null) { %>
+
+            <div class="alert alert-success">
+                ✓ <%= escapar(mensajeExito) %>
+            </div>
 
             <% } %>
 
+            <% if (mensajeError != null) { %>
 
-        </div>
+            <div class="alert alert-error">
+                ⚠ <%= escapar(mensajeError) %>
+            </div>
 
+            <% } %>
+
+            <!-- PANEL -->
+
+            <section class="panel">
+
+                <div class="toolbar">
+
+                    <div class="toolbar-title">
+
+                        <h3>Usuarios registrados</h3>
+
+                        <span>
+                            <%= usuarios != null
+                                    ? usuarios.size()
+                                    : 0 %>
+                            usuario(s) encontrado(s)
+                        </span>
+
+                    </div>
+
+                    <div class="search-box">
+
+                        <input type="search"
+                               id="buscarUsuario"
+                               placeholder="Buscar usuario o correo..."
+                               oninput="filtrarUsuarios()"
+                               aria-label="Buscar usuarios">
+
+                    </div>
+
+                </div>
+
+                <div class="table-container">
+
+                    <% if (usuarios != null && !usuarios.isEmpty()) { %>
+
+                    <table id="tablaUsuarios">
+
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Usuario</th>
+                                <th>Correo</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+
+                        <% for (Usuario usuario : usuarios) {
+
+                            String usuarioListado =
+                                    usuario.getNombreUsuario();
+
+                            String inicial =
+                                    usuarioListado != null
+                                    && !usuarioListado.isEmpty()
+                                    ? usuarioListado.substring(0, 1)
+                                            .toUpperCase()
+                                    : "U";
+
+                            String correo =
+                                    usuario.getCorreo() != null
+                                    ? usuario.getCorreo()
+                                    : "-";
+                        %>
+
+                            <tr>
+
+                                <td>
+                                    #<%= usuario.getIdUsuario() %>
+                                </td>
+
+                                <td>
+
+                                    <div class="usuario-info">
+
+                                        <div class="usuario-mini-avatar">
+                                            <%= escapar(inicial) %>
+                                        </div>
+
+                                        <strong>
+                                            <%= escapar(usuarioListado) %>
+                                        </strong>
+
+                                    </div>
+
+                                </td>
+
+                                <td>
+                                    <%= escapar(correo) %>
+                                </td>
+
+                                <td>
+
+                                    <% if (usuario.getIdRol() == 1) { %>
+
+                                        Administrador
+
+                                    <% } else { %>
+
+                                        Rol <%= usuario.getIdRol() %>
+
+                                    <% } %>
+
+                                </td>
+
+                                <td>
+
+                                    <% if (usuario.isBloqueado()) { %>
+
+                                    <span class="estado estado-bloqueado">
+                                        Bloqueado
+                                    </span>
+
+                                    <% } else if (usuario.isEstado()) { %>
+
+                                    <span class="estado estado-activo">
+                                        Activo
+                                    </span>
+
+                                    <% } else { %>
+
+                                    <span class="estado estado-inactivo">
+                                        Inactivo
+                                    </span>
+
+                                    <% } %>
+
+                                </td>
+
+                                <td>
+
+                                    <div class="acciones">
+
+                                        <a href="<%= contexto %>/UsuarioController?accion=editar&id=<%= usuario.getIdUsuario() %>"
+                                           class="btn-accion btn-editar">
+                                            Editar
+                                        </a>
+
+                                        <a href="<%= contexto %>/UsuarioController?accion=eliminar&id=<%= usuario.getIdUsuario() %>"
+                                           class="btn-accion btn-eliminar"
+                                           data-nombre="<%= escapar(usuarioListado) %>"
+                                           onclick="return confirmarEliminacion(this.dataset.nombre);">
+                                            Eliminar
+                                        </a>
+
+                                    </div>
+
+                                </td>
+
+                            </tr>
+
+                        <% } %>
+
+                        </tbody>
+
+                    </table>
+
+                    <div id="sinResultados"
+                         class="sin-resultados">
+                        No se encontraron usuarios con ese criterio.
+                    </div>
+
+                    <% } else { %>
+
+                    <div class="vacio">
+
+                        <div class="vacio-icono">👤</div>
+
+                        <h3>No hay usuarios registrados</h3>
+
+                        <p style="margin-top:12px;">
+                            Registra un nuevo usuario para comenzar.
+                        </p>
+
+                    </div>
+
+                    <% } %>
+
+                </div>
+
+            </section>
+
+        </main>
 
     </section>
 
-
-</main>
-
-
+</div>
 
 <script>
-
-    // =========================================================
-    // BUSCADOR
-    // =========================================================
-
     function filtrarUsuarios() {
 
         const input =
                 document.getElementById("buscarUsuario");
 
-        const filtro =
-                input.value.toLowerCase();
-
         const tabla =
                 document.getElementById("tablaUsuarios");
 
-
-        if (!tabla) {
+        if (!input || !tabla) {
             return;
         }
 
+        const filtro = input.value
+                .trim()
+                .toLowerCase();
 
-        const filas =
-                tabla.getElementsByTagName("tbody")[0]
-                     .getElementsByTagName("tr");
+        const filas = tabla.querySelectorAll(
+                "tbody tr"
+        );
 
+        let encontrados = 0;
 
-        for (let i = 0; i < filas.length; i++) {
+        filas.forEach(fila => {
 
-            const texto =
-                    filas[i].textContent.toLowerCase();
+            const texto = fila.textContent.toLowerCase();
 
-            if (texto.includes(filtro)) {
+            const coincide = texto.includes(filtro);
 
-                filas[i].style.display = "";
+            fila.style.display = coincide ? "" : "none";
 
-            } else {
-
-                filas[i].style.display = "none";
+            if (coincide) {
+                encontrados++;
             }
+        });
+
+        const aviso =
+                document.getElementById("sinResultados");
+
+        if (aviso) {
+            aviso.style.display =
+                    encontrados === 0 ? "block" : "none";
         }
     }
-
-
-    // =========================================================
-    // CONFIRMAR ELIMINACIÓN
-    // =========================================================
 
     function confirmarEliminacion(nombreUsuario) {
 
         return confirm(
-            "¿Está seguro de desactivar al usuario "
-            + nombreUsuario
-            + "?"
+                "¿Está seguro de desactivar al usuario "
+                + nombreUsuario
+                + "?"
         );
     }
-
 </script>
 
-
 </body>
-
 </html>
