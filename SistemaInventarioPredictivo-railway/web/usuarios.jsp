@@ -12,6 +12,18 @@
                     .replace("\"", "&quot;")
                     .replace("'", "&#39;");
     }
+
+    private String obtenerNombreRol(int idRol) {
+        switch (idRol) {
+            case 1: return "Administrador";
+            case 2: return "Vendedor";
+            case 3: return "Almacenero";
+            case 4: return "Encargado de Compras";
+            case 5: return "Supervisor";
+            case 6: return "Usuario General";
+            default: return "Rol " + idRol;
+        }
+    }
 %>
 
 <%
@@ -20,23 +32,26 @@
 
     if (sesion == null
             || sesion.getAttribute("usuario") == null) {
-
         response.sendRedirect(
                 request.getContextPath() + "/login.jsp"
         );
         return;
     }
 
-    String nombreUsuario = String.valueOf(
-            sesion.getAttribute("usuario")
-    );
-
     Integer idRolSesion =
             (Integer) sesion.getAttribute("idRol");
 
-    String nombreRol =
-            idRolSesion != null && idRolSesion == 1
-            ? "Administrador" : "Usuario";
+    if (idRolSesion == null || idRolSesion != 1) {
+        response.sendRedirect(
+                request.getContextPath() + "/MenuController"
+        );
+        return;
+    }
+
+    String nombreUsuario =
+            String.valueOf(sesion.getAttribute("usuario"));
+
+    String nombreRol = obtenerNombreRol(idRolSesion);
 
     List<Usuario> usuarios =
             (List<Usuario>) request.getAttribute("usuarios");
@@ -84,7 +99,7 @@
             min-height: 100vh;
         }
 
-        /* SIDEBAR UNIFICADA */
+        /* SIDEBAR */
 
         .sidebar {
             position: fixed;
@@ -94,9 +109,7 @@
             width: 260px;
             display: flex;
             flex-direction: column;
-            background: linear-gradient(
-                180deg, #171322, #100d18
-            );
+            background: linear-gradient(180deg, #171322, #100d18);
             border-right: 1px solid rgba(255,255,255,.08);
             z-index: 100;
         }
@@ -119,9 +132,7 @@
             border-radius: 13px;
             font-size: 18px;
             font-weight: bold;
-            background: linear-gradient(
-                135deg, #7c3aed, #4f46e5
-            );
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
             flex-shrink: 0;
         }
 
@@ -151,9 +162,7 @@
             border-radius: 50%;
             font-size: 28px;
             font-weight: bold;
-            background: linear-gradient(
-                135deg, #7c3aed, #4f46e5
-            );
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
         }
 
         .usuario-area h3 {
@@ -217,7 +226,7 @@
             flex-shrink: 0;
         }
 
-        /* CONTENIDO PRINCIPAL */
+        /* CONTENIDO */
 
         .contenido {
             margin-left: 260px;
@@ -340,12 +349,10 @@
             color: #fca5a5;
         }
 
-        /* PANEL DE USUARIOS */
+        /* PANEL */
 
         .panel {
-            background: linear-gradient(
-                145deg, #1a1728, #12111d
-            );
+            background: linear-gradient(145deg, #1a1728, #12111d);
             border: 1px solid rgba(255,255,255,.08);
             border-radius: 16px;
             overflow: hidden;
@@ -449,6 +456,21 @@
 
         .usuario-info strong {
             overflow-wrap: anywhere;
+        }
+
+        /* ROLES */
+
+        .rol-etiqueta {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 11px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            background: rgba(124,58,237,.12);
+            color: #c4b5fd;
+            border: 1px solid rgba(124,58,237,.22);
+            white-space: nowrap;
         }
 
         /* ESTADOS */
@@ -614,7 +636,7 @@
 
 <div class="dashboard">
 
-    <!-- SIDEBAR UNIFICADA -->
+    <!-- SIDEBAR -->
 
     <aside class="sidebar">
 
@@ -634,11 +656,11 @@
                         nombreUsuario.isEmpty()
                         ? "U"
                         : nombreUsuario.substring(0, 1).toUpperCase()
-                    ) %>
+                ) %>
             </div>
 
             <h3><%= escapar(nombreUsuario) %></h3>
-            <span><%= nombreRol %></span>
+            <span><%= escapar(nombreRol) %></span>
 
         </div>
 
@@ -654,15 +676,11 @@
                 Inicio
             </a>
 
-            <% if (idRolSesion != null && idRolSesion == 1) { %>
-
             <a href="<%= contexto %>/MenuController?accion=usuarios"
                class="menu-item activo">
                 <span class="menu-icono">👤</span>
                 Gestión de Usuarios
             </a>
-
-            <% } %>
 
             <a href="<%= contexto %>/MenuController?accion=clientes"
                class="menu-item">
@@ -720,8 +738,8 @@
                     <h2>Usuarios</h2>
 
                     <p>
-                        Administra las cuentas de acceso al
-                        sistema, sus roles, permisos y estados.
+                        Administra las cuentas de acceso al sistema,
+                        sus roles, permisos y estados.
                     </p>
 
                 </div>
@@ -764,7 +782,7 @@
 
             <% } %>
 
-            <!-- PANEL -->
+            <!-- PANEL DE USUARIOS -->
 
             <section class="panel">
 
@@ -826,10 +844,13 @@
                                             .toUpperCase()
                                     : "U";
 
-                            String correo =
+                            String correoUsuario =
                                     usuario.getCorreo() != null
                                     ? usuario.getCorreo()
                                     : "-";
+
+                            String rolUsuario =
+                                    obtenerNombreRol(usuario.getIdRol());
                         %>
 
                             <tr>
@@ -855,21 +876,15 @@
                                 </td>
 
                                 <td>
-                                    <%= escapar(correo) %>
+                                    <%= escapar(correoUsuario) %>
                                 </td>
 
+                                <!-- NOMBRE DEL ROL -->
+
                                 <td>
-
-                                    <% if (usuario.getIdRol() == 1) { %>
-
-                                        Administrador
-
-                                    <% } else { %>
-
-                                        Rol <%= usuario.getIdRol() %>
-
-                                    <% } %>
-
+                                    <span class="rol-etiqueta">
+                                        <%= escapar(rolUsuario) %>
+                                    </span>
                                 </td>
 
                                 <td>
@@ -972,16 +987,13 @@
                 .trim()
                 .toLowerCase();
 
-        const filas = tabla.querySelectorAll(
-                "tbody tr"
-        );
+        const filas = tabla.querySelectorAll("tbody tr");
 
         let encontrados = 0;
 
         filas.forEach(fila => {
 
             const texto = fila.textContent.toLowerCase();
-
             const coincide = texto.includes(filtro);
 
             fila.style.display = coincide ? "" : "none";
@@ -1001,11 +1013,10 @@
     }
 
     function confirmarEliminacion(nombreUsuario) {
-
         return confirm(
-                "¿Está seguro de desactivar al usuario "
-                + nombreUsuario
-                + "?"
+            "¿Está seguro de desactivar al usuario "
+            + nombreUsuario
+            + "?"
         );
     }
 </script>
