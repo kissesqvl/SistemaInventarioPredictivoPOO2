@@ -47,16 +47,16 @@
 
     String mensajeExito =
             (String) sesionActual.getAttribute(
-                    "mensajeExitoProveedor"
+                    "mensajeExitoMercaderia"
             );
 
     String mensajeError =
             (String) sesionActual.getAttribute(
-                    "mensajeErrorProveedor"
+                    "mensajeErrorMercaderia"
             );
 
-    sesionActual.removeAttribute("mensajeExitoProveedor");
-    sesionActual.removeAttribute("mensajeErrorProveedor");
+    sesionActual.removeAttribute("mensajeExitoMercaderia");
+    sesionActual.removeAttribute("mensajeErrorMercaderia");
 %>
 
 <!DOCTYPE html>
@@ -68,7 +68,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>Gestión de Proveedores | SIP</title>
+    <title>Gestión de Mercadería y Servicios | SIP</title>
 
     <style>
         * {
@@ -542,14 +542,14 @@
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=proveedores"
-               class="menu-item activo">
+               class="menu-item">
 
                 <span class="menu-icono">🚚</span>
                 Proveedores
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=mercaderia"
-               class="menu-item">
+               class="menu-item activo">
 
                 <span class="menu-icono">📦</span>
                 Mercadería / Servicios
@@ -581,7 +581,7 @@
 
         <header class="header">
 
-            <h1>Gestión de Proveedores</h1>
+            <h1>Gestión de Mercadería y Servicios</h1>
 
             <div class="header-usuario">
                 ● <%= escapar(usuario) %>
@@ -593,13 +593,13 @@
 
             <div class="encabezado">
 
-                <h2>Gestión de Proveedores</h2>
+                <h2>Gestión de Mercadería y Servicios</h2>
 
                 <p>
                     Selecciona la operación que deseas
                     realizar. Puedes registrar nuevos
-                    proveedores o consultar los
-                    proveedores existentes.
+                    productos o servicios, o consultar
+                    los registros existentes.
                 </p>
 
             </div>
@@ -628,50 +628,50 @@
 
             <div class="opciones">
 
-                <!-- REGISTRAR PROVEEDOR -->
+                <!-- REGISTRAR MERCADERIA O SERVICIO -->
 
                 <a class="tarjeta"
-                   href="<%= contexto %>/ProveedorController?accion=nuevo">
+                   href="<%= contexto %>/MercaderiaServicioController?accion=nuevo">
 
                     <div class="tarjeta-icono">
                         ➕
                     </div>
 
-                    <h3>Registrar Proveedor</h3>
+                    <h3>Registrar Mercadería / Servicio</h3>
 
                     <p>
-                        Registra un nuevo proveedor
-                        de tipo persona natural o empresa,
-                        ingresando sus datos personales
-                        o empresariales.
+                        Registra un nuevo producto o servicio.
+                        Para mercadería, también podrás
+                        ingresar el stock inicial y mínimo
+                        correspondiente.
                     </p>
 
                     <span class="tarjeta-accion">
-                        Registrar proveedor →
+                        Registrar producto / servicio →
                     </span>
 
                 </a>
 
-                <!-- BUSCAR PROVEEDORES -->
+                <!-- BUSCAR MERCADERIA Y SERVICIOS -->
 
                 <a class="tarjeta"
-                   href="<%= contexto %>/ProveedorController?accion=buscar">
+                   href="<%= contexto %>/MercaderiaServicioController?accion=buscar">
 
                     <div class="tarjeta-icono">
                         🔎
                     </div>
 
-                    <h3>Buscar Proveedores</h3>
+                    <h3>Buscar Mercadería / Servicios</h3>
 
                     <p>
-                        Consulta los proveedores
-                        registrados, realiza búsquedas
-                        por nombre, DNI, RUC o razón social
-                        y administra sus datos.
+                        Consulta los productos y servicios
+                        registrados, realiza búsquedas por
+                        nombre o descripción y administra
+                        sus datos e inventario.
                     </p>
 
                     <span class="tarjeta-accion">
-                        Buscar proveedores →
+                        Buscar productos / servicios →
                     </span>
 
                 </a>
