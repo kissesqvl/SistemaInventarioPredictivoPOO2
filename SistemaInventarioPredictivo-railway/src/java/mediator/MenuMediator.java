@@ -77,7 +77,7 @@ public class MenuMediator {
             case "reportes":
 
                 return new AbrirModuloCommand(
-                        "/modulo.jsp?modulo=reportes"
+                        "/ReporteController"
                 );
 
             // =====================================
