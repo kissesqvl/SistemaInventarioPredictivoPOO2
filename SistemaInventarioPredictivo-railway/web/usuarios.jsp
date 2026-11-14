@@ -1,4 +1,3 @@
-
 <%@page import="java.util.List"%>
 <%@page import="model.Usuario"%>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
@@ -69,6 +68,20 @@
     sesion.removeAttribute("mensajeError");
 
     String contexto = request.getContextPath();
+
+    String fechaDesde =
+            (String) request.getAttribute("fechaDesde");
+
+    String fechaHasta =
+            (String) request.getAttribute("fechaHasta");
+
+    if (fechaDesde == null) {
+        fechaDesde = "";
+    }
+
+    if (fechaHasta == null) {
+        fechaHasta = "";
+    }
 %>
 
 <!DOCTYPE html>
@@ -401,6 +414,41 @@
             color: #77778a;
         }
 
+        /* FILTRO DE FECHAS */
+
+        .filtro-fechas {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 20px 25px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+
+        .filtro-fecha {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #c4b5fd;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .filtro-fechas input[type="date"] {
+            padding: 10px 12px;
+            border: 1px solid rgba(255,255,255,.12);
+            border-radius: 10px;
+            outline: none;
+            background: #12111d;
+            color: #ffffff;
+            font-size: 13px;
+            color-scheme: dark;
+        }
+
+        .filtro-fechas input[type="date"]:focus {
+            border-color: #8b5cf6;
+        }
+
         /* TABLA */
 
         .table-container {
@@ -614,6 +662,12 @@
             .search-box {
                 width: 100%;
             }
+
+            .filtro-fechas {
+                align-items: flex-start;
+                flex-direction: column;
+                padding: 20px;
+            }
         }
 
         @media (max-width: 500px) {
@@ -786,6 +840,42 @@
 
             <section class="panel">
 
+                <!-- FILTRO POR FECHA DE CREACIÓN -->
+
+                <form class="filtro-fechas"
+                      method="get"
+                      action="<%= contexto %>/UsuarioController">
+
+                    <input type="hidden"
+                           name="accion"
+                           value="listar">
+
+                    <label class="filtro-fecha">
+                        Creado desde
+                        <input type="date"
+                               name="fechaDesde"
+                               value="<%= escapar(fechaDesde) %>">
+                    </label>
+
+                    <label class="filtro-fecha">
+                        hasta
+                        <input type="date"
+                               name="fechaHasta"
+                               value="<%= escapar(fechaHasta) %>">
+                    </label>
+
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Filtrar
+                    </button>
+
+                    <a href="<%= contexto %>/UsuarioController"
+                       class="btn btn-secondary">
+                        Limpiar
+                    </a>
+
+                </form>
+
                 <div class="toolbar">
 
                     <div class="toolbar-title">
@@ -878,8 +968,6 @@
                                 <td>
                                     <%= escapar(correoUsuario) %>
                                 </td>
-
-                                <!-- NOMBRE DEL ROL -->
 
                                 <td>
                                     <span class="rol-etiqueta">
