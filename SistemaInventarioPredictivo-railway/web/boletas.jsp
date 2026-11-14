@@ -85,7 +85,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Boletas | SIP</title>
+    <title>Boletas | SIP</title>
 
     <style>
         * {
@@ -366,6 +366,29 @@
             color-scheme: dark;
         }
 
+        .emitir-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .emitir-form select {
+            flex: 1;
+            min-width: 260px;
+            padding: 13px 15px;
+            border: 1px solid #39314d;
+            border-radius: 10px;
+            background: #100f1b;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .estado-anulada {
+            background: rgba(239,68,68,.13);
+            color: #fca5a5;
+        }
+
         .tabla-contenedor {
             overflow-x: auto;
         }
@@ -577,7 +600,7 @@
     <section class="contenido">
 
         <header class="header-superior">
-            <h1>Gestión de Boletas</h1>
+            <h1>Boletas</h1>
             <div class="header-usuario">
                 ● <%= escapar(usuario) %>
             </div>
@@ -587,65 +610,88 @@
 
             <div class="encabezado">
                 <div>
-                    <h2>Boletas de Venta</h2>
+                    <h2>Módulo de Boletas</h2>
                     <p class="subtitulo">
-                        Consulta las boletas emitidas y genera boletas para las ventas registradas.
+                        Emite y consulta las boletas de las ventas registradas.
                     </p>
                 </div>
 
                 <div>
                     <a class="boton boton-secundario"
                        href="<%= contexto %>/MenuController">
-                        ← Volver
+                        ← Inicio
                     </a>
                 </div>
             </div>
 
             <% if (mensajeExito != null) { %>
-                <div class="mensaje exito">
-                    <%= escapar(mensajeExito) %>
-                </div>
+                <div class="mensaje exito"><%= escapar(mensajeExito) %></div>
             <% } %>
 
             <% if (mensajeError != null) { %>
-                <div class="mensaje error">
-                    <%= escapar(mensajeError) %>
-                </div>
+                <div class="mensaje error"><%= escapar(mensajeError) %></div>
             <% } %>
 
-            <!-- BUSCADOR DE BOLETAS -->
+            <!-- EMITIR BOLETA -->
             <section class="tarjeta">
-                <h3>Buscar boletas emitidas</h3>
+                <h3>Emitir boleta</h3>
+
+                <form class="emitir-form"
+                      method="post"
+                      action="<%= contexto %>/BoletaController">
+
+                    <input type="hidden" name="accion" value="emitir">
+
+                    <select name="idVenta" required>
+                        <option value="">
+                            Selecciona una venta sin boleta...
+                        </option>
+
+                        <% for (Map<String, Object> venta : ventasSinBoleta) { %>
+                            <option value="<%= venta.get("idVenta") %>">
+                                Venta #<%= venta.get("idVenta") %>
+                                — <%= venta.get("cliente") == null
+                                        ? "Sin cliente"
+                                        : escapar(String.valueOf(venta.get("cliente"))) %>
+                                — S/ <%= venta.get("total") %>
+                            </option>
+                        <% } %>
+                    </select>
+
+                    <button type="submit" class="boton boton-primario">
+                        🧾 Emitir boleta
+                    </button>
+                </form>
+            </section>
+
+            <!-- BUSCADOR -->
+            <section class="tarjeta">
+                <h3>Buscar boletas</h3>
 
                 <form class="buscador"
                       method="get"
                       action="<%= contexto %>/BoletaController">
 
-                    <input type="hidden"
-                           name="accion"
-                           value="buscar">
+                    <input type="hidden" name="accion" value="buscar">
 
                     <input type="text"
                            name="texto"
                            value="<%= escapar(textoBusqueda) %>"
-                           placeholder="N.º de boleta, serie, número o ID de venta">
+                           placeholder="N.º boleta, venta, cliente, DNI o estado">
 
                     <label class="filtro-fecha">
                         Desde
-                        <input type="date"
-                               name="fechaDesde"
+                        <input type="date" name="fechaDesde"
                                value="<%= escapar(fechaDesde) %>">
                     </label>
 
                     <label class="filtro-fecha">
                         Hasta
-                        <input type="date"
-                               name="fechaHasta"
+                        <input type="date" name="fechaHasta"
                                value="<%= escapar(fechaHasta) %>">
                     </label>
 
-                    <button type="submit"
-                            class="boton boton-primario">
+                    <button type="submit" class="boton boton-primario">
                         🔎 Buscar
                     </button>
 
@@ -656,96 +702,19 @@
                 </form>
             </section>
 
-            <!-- VENTAS SIN BOLETA -->
+            <!-- TABLA -->
             <section class="tarjeta">
-                <h3>Ventas pendientes de generar boleta</h3>
-
-                <div class="tabla-contenedor">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>N.º Venta</th>
-                                <th>Fecha</th>
-                                <th>ID Cliente</th>
-                                <th>Total</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <% if (ventasSinBoleta.isEmpty()) { %>
-                                <tr>
-                                    <td colspan="5" class="vacio">
-                                        No hay ventas pendientes de generar boleta.
-                                    </td>
-                                </tr>
-                            <% } else { %>
-
-                                <% for (Map<String, Object> venta : ventasSinBoleta) { %>
-                                    <tr>
-                                        <td>
-                                            #<%= venta.get("idVenta") %>
-                                        </td>
-
-                                        <td>
-                                            <%= venta.get("fechaVenta") == null
-                                                    ? "-"
-                                                    : escapar(String.valueOf(venta.get("fechaVenta"))) %>
-                                        </td>
-
-                                        <td>
-                                            <%= venta.get("idCliente") == null
-                                                    ? "-"
-                                                    : venta.get("idCliente") %>
-                                        </td>
-
-                                        <td>
-                                            S/ <%= venta.get("total") == null
-                                                    ? "0.00"
-                                                    : venta.get("total") %>
-                                        </td>
-
-                                        <td>
-                                            <form method="post"
-                                                  action="<%= contexto %>/BoletaController"
-                                                  style="display:inline;">
-
-                                                <input type="hidden"
-                                                       name="accion"
-                                                       value="emitir">
-
-                                                <input type="hidden"
-                                                       name="idVenta"
-                                                       value="<%= venta.get("idVenta") %>">
-
-                                                <button type="submit"
-                                                        class="boton boton-primario">
-                                                    🧾 Generar boleta
-                                                </button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                <% } %>
-
-                            <% } %>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- TABLA DE BOLETAS -->
-            <section class="tarjeta">
-                <h3>Historial de boletas emitidas</h3>
+                <h3>Boletas emitidas</h3>
 
                 <div class="tabla-contenedor">
                     <table>
                         <thead>
                             <tr>
                                 <th>N.º Boleta</th>
-                                <th>N.º Venta</th>
-                                <th>Fecha de emisión</th>
-                                <th>Subtotal</th>
-                                <th>IGV</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th>DNI</th>
+                                <th>Venta</th>
                                 <th>Total</th>
                                 <th>Estado</th>
                                 <th>Acciones</th>
@@ -753,58 +722,68 @@
                         </thead>
 
                         <tbody>
-                            <% if (boletas.isEmpty()) { %>
+                        <% if (boletas.isEmpty()) { %>
+                            <tr>
+                                <td colspan="8" class="vacio">
+                                    No se encontraron boletas.
+                                </td>
+                            </tr>
+                        <% } else { %>
+                            <% for (Boleta b : boletas) { %>
                                 <tr>
-                                    <td colspan="8" class="vacio">
-                                        No se encontraron boletas emitidas.
+                                    <td><%= escapar(b.getNumeroCompleto()) %></td>
+
+                                    <td>
+                                        <%= b.getFechaEmision() == null
+                                            ? "-"
+                                            : escapar(b.getFechaEmision()
+                                                .toString().replace("T", " ")) %>
+                                    </td>
+
+                                    <td>
+                                        <%= b.getNombreCliente() == null
+                                            || b.getNombreCliente().isBlank()
+                                            ? "-"
+                                            : escapar(b.getNombreCliente()) %>
+                                    </td>
+
+                                    <td><%= escapar(b.getDniCliente()) %></td>
+
+                                    <td>#<%= b.getIdVenta() %></td>
+
+                                    <td>S/ <%= b.getTotal() %></td>
+
+                                    <td>
+                                        <span class="estado <%= "Anulada".equalsIgnoreCase(b.getEstado())
+                                                ? "estado-anulada" : "" %>">
+                                            <%= escapar(b.getEstado()) %>
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <a class="boton boton-secundario"
+                                           href="<%= contexto %>/BoletaController?accion=ver&amp;idBoleta=<%= b.getIdBoleta() %>">
+                                            Ver / Imprimir
+                                        </a>
+
+                                        <% if (esAdmin && "Emitida".equalsIgnoreCase(b.getEstado())) { %>
+                                            <form method="post"
+                                                  action="<%= contexto %>/BoletaController"
+                                                  style="display:inline;"
+                                                  onsubmit="return confirm('¿Anular esta boleta?');">
+                                                <input type="hidden" name="accion" value="anular">
+                                                <input type="hidden" name="idBoleta"
+                                                       value="<%= b.getIdBoleta() %>">
+                                                <button type="submit"
+                                                        class="boton boton-secundario">
+                                                    Anular
+                                                </button>
+                                            </form>
+                                        <% } %>
                                     </td>
                                 </tr>
-                            <% } else { %>
-
-                                <% for (Boleta boleta : boletas) { %>
-                                    <tr>
-                                        <td>
-                                            <%= escapar(boleta.getSerie()) %>-<%= escapar(boleta.getNumero()) %>
-                                        </td>
-
-                                        <td>
-                                            #<%= boleta.getIdVenta() %>
-                                        </td>
-
-                                        <td>
-                                            <%= boleta.getFechaEmision() == null
-                                                    ? "-"
-                                                    : escapar(boleta.getFechaEmision().toString()) %>
-                                        </td>
-
-                                        <td>
-                                            S/ <%= boleta.getSubtotal() %>
-                                        </td>
-
-                                        <td>
-                                            S/ <%= boleta.getIgv() %>
-                                        </td>
-
-                                        <td>
-                                            S/ <%= boleta.getTotal() %>
-                                        </td>
-
-                                        <td>
-                                            <span class="estado">
-                                                <%= escapar(boleta.getEstado()) %>
-                                            </span>
-                                        </td>
-
-                                        <td>
-                                            <a class="boton boton-secundario"
-                                               href="<%= contexto %>/BoletaController?accion=detalle&amp;idBoleta=<%= boleta.getIdBoleta() %>">
-                                                Ver detalle
-                                            </a>
-                                        </td>
-                                    </tr>
-                                <% } %>
-
                             <% } %>
+                        <% } %>
                         </tbody>
                     </table>
                 </div>
@@ -828,13 +807,10 @@
                             <% } %>
 
                             <%
-                                int desde = Math.max(1, paginaActual - 2);
-                                int hasta = Math.min(
-                                        totalPaginas,
-                                        paginaActual + 2
-                                );
+                                int paginaInicio = Math.max(1, paginaActual - 2);
+                                int paginaFin = Math.min(totalPaginas, paginaActual + 2);
 
-                                for (int p = desde; p <= hasta; p++) {
+                                for (int p = paginaInicio; p <= paginaFin; p++) {
                             %>
                                 <a class="pagina <%= p == paginaActual ? "activa" : "" %>"
                                    href="<%= contexto %>/BoletaController?accion=buscar&amp;texto=<%= filtroUrl %>&amp;pagina=<%= p %>">
@@ -853,7 +829,6 @@
                     <% } %>
                 </div>
             </section>
-
         </main>
     </section>
 </div>
