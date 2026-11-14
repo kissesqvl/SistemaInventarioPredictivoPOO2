@@ -1,4 +1,3 @@
-
 package mediator;
 
 import command.AbrirModuloCommand;
@@ -68,6 +67,16 @@ public class MenuMediator {
 
                 return new AbrirModuloCommand(
                         "/VentaController"
+                );
+
+            // =====================================
+            // MODULO DE BOLETAS
+            // =====================================
+
+            case "boletas":
+
+                return new AbrirModuloCommand(
+                        "/BoletaController"
                 );
 
             // =====================================
