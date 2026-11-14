@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="model.Venta"%>
@@ -378,6 +377,25 @@
             </div>
 
         </section>
+
+        <% if ("Registrada".equalsIgnoreCase(venta.getEstado())) { %>
+
+            <form method="post"
+                  action="<%= contexto %>/BoletaController"
+                  style="display:inline-block;margin-right:10px;">
+
+                <input type="hidden" name="accion" value="emitir">
+                <input type="hidden" name="idVenta"
+                       value="<%= venta.getIdVenta() %>">
+
+                <button type="submit" class="btn"
+                        style="border:none;cursor:pointer;">
+                    🧾 Generar boleta
+                </button>
+
+            </form>
+
+        <% } %>
 
         <a class="btn"
            href="<%= contexto %>/VentaController">
