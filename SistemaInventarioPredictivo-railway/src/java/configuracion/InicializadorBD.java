@@ -16,7 +16,10 @@ public class InicializadorBD implements ServletContextListener {
         // 1. Crear el usuario Odin si todavia no existe
         crearUsuarioOdin(evento);
 
-        // 2. Configuracion de la relacion Cliente (como estaba antes)
+        // 2. Crear la tabla Boleta si todavia no existe
+        crearTablaBoleta(evento);
+
+        // 3. Configuracion de la relacion Cliente (como estaba antes)
         String ejecutar = System.getenv("CONFIGURAR_CLIENTE_FK");
 
         if (!"true".equalsIgnoreCase(ejecutar)) {
@@ -37,6 +40,25 @@ public class InicializadorBD implements ServletContextListener {
 
             evento.getServletContext().log(
                 "ERROR al configurar la relacion Cliente.",
+                e
+            );
+        }
+    }
+
+    // Crea la tabla Boleta (modulo Boletas) solo si no existe
+    private void crearTablaBoleta(ServletContextEvent evento) {
+
+        try {
+            ConfigurarBD.crearTablaBoleta();
+
+            evento.getServletContext().log(
+                "Tabla Boleta verificada correctamente."
+            );
+
+        } catch (Exception e) {
+
+            evento.getServletContext().log(
+                "ERROR al crear la tabla Boleta.",
                 e
             );
         }
