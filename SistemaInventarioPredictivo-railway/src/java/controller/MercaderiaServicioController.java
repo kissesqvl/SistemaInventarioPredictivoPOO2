@@ -1,8 +1,8 @@
-
 package controller;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +28,7 @@ import repository.ProveedorMercaderiaRepository;
 import repository.ProveedorMercaderiaRepositoryImpl;
 
 import service.MercaderiaRegistroService;
+import util.FechaUtil;
 
 @WebServlet("/MercaderiaServicioController")
 public class MercaderiaServicioController extends HttpServlet {
@@ -249,7 +250,7 @@ public class MercaderiaServicioController extends HttpServlet {
     }
 
     // ==========================================
-    // LISTADO CON PAGINACION
+    // LISTADO CON PAGINACION Y FILTRO DE FECHAS
     // ==========================================
 
     private void mostrarListadoPaginado(
@@ -267,8 +268,17 @@ public class MercaderiaServicioController extends HttpServlet {
 
         int pagina = obtenerPagina(request);
 
+        LocalDate[] rangoFechas = FechaUtil.rango(
+                request.getParameter("fechaDesde"),
+                request.getParameter("fechaHasta")
+        );
+
+        LocalDate fechaDesde = rangoFechas[0];
+        LocalDate fechaHasta = rangoFechas[1];
+
         long totalRegistros =
-                mercaderiaRepo.contarMercaderia(texto);
+                mercaderiaRepo.contarMercaderia(
+                        texto, fechaDesde, fechaHasta);
 
         long totalPaginasLong =
                 (totalRegistros + TAMANIO_PAGINA - 1)
@@ -283,28 +293,18 @@ public class MercaderiaServicioController extends HttpServlet {
             pagina = totalPaginas;
         }
 
-        List<MercaderiaServicio> lista;
+        List<MercaderiaServicio> lista =
+                mercaderiaRepo.buscarPaginado(
+                        texto,
+                        fechaDesde,
+                        fechaHasta,
+                        pagina,
+                        TAMANIO_PAGINA
+                );
 
-        if (texto.isEmpty()) {
-
-            lista = mercaderiaRepo.listarPaginado(
-                    pagina,
-                    TAMANIO_PAGINA
-            );
-
-        } else {
-
-            lista = mercaderiaRepo.buscarPaginado(
-                    texto,
-                    pagina,
-                    TAMANIO_PAGINA
-            );
-        }
-
-        request.setAttribute(
-                "textoBusqueda",
-                texto
-        );
+        request.setAttribute("textoBusqueda", texto);
+        request.setAttribute("fechaDesde", FechaUtil.texto(fechaDesde));
+        request.setAttribute("fechaHasta", FechaUtil.texto(fechaHasta));
 
         request.setAttribute(
                 "paginaActual",
