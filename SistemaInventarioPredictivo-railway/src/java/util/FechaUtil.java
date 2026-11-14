@@ -8,8 +8,6 @@ public final class FechaUtil {
     private FechaUtil() {
     }
 
-    // Convierte una fecha yyyy-MM-dd en LocalDate.
-    // Si esta vacia, devuelve null.
     public static LocalDate parsear(String texto) {
 
         if (texto == null || texto.isBlank()) {
@@ -27,7 +25,6 @@ public final class FechaUtil {
         }
     }
 
-    // Obtiene el rango de fechas y valida que sea correcto.
     public static LocalDate[] rango(
             String desdeTexto,
             String hastaTexto) {
@@ -45,13 +42,9 @@ public final class FechaUtil {
             );
         }
 
-        return new LocalDate[]{
-            desde,
-            hasta
-        };
+        return new LocalDate[]{desde, hasta};
     }
 
-    // Convierte LocalDate en texto para los JSP.
     public static String texto(LocalDate fecha) {
 
         if (fecha == null) {
