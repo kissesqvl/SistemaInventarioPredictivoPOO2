@@ -1,4 +1,3 @@
-
 package repository;
 
 import java.math.BigDecimal;
@@ -39,9 +38,11 @@ public interface ReporteRepository {
     // REPORTE DE INVENTARIO
     // ==========================================
 
-    // Inventario actual de mercaderías
-    List<Map<String, Object>> obtenerReporteInventario()
-            throws SQLException;
+    // Inventario dentro de un rango de fechas
+    List<Map<String, Object>> obtenerReporteInventario(
+            LocalDate fechaInicio,
+            LocalDate fechaFin
+    ) throws SQLException;
 
     // ==========================================
     // PRODUCTOS MÁS VENDIDOS
@@ -56,13 +57,17 @@ public interface ReporteRepository {
     // REPORTE DE CLIENTES
     // ==========================================
 
-    List<Map<String, Object>> obtenerReporteClientes()
-            throws SQLException;
+    List<Map<String, Object>> obtenerReporteClientes(
+            LocalDate fechaInicio,
+            LocalDate fechaFin
+    ) throws SQLException;
 
     // ==========================================
     // REPORTE DE PROVEEDORES
     // ==========================================
 
-    List<Map<String, Object>> obtenerReporteProveedores()
-            throws SQLException;
+    List<Map<String, Object>> obtenerReporteProveedores(
+            LocalDate fechaInicio,
+            LocalDate fechaFin
+    ) throws SQLException;
 }
