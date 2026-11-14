@@ -1,7 +1,7 @@
-
 package repository;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 import model.Venta;
 import model.DetalleVenta;
@@ -23,16 +23,32 @@ public interface VentaRepository {
             int tamanioPagina
     ) throws SQLException;
 
-    // Búsqueda paginada
+    // Búsqueda paginada original
     List<Venta> buscarPaginado(
             String texto,
             int pagina,
             int tamanioPagina
     ) throws SQLException;
 
-    // Total de registros para paginación
+    // Búsqueda paginada con filtro por fecha
+    List<Venta> buscarPaginado(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            int pagina,
+            int tamanioPagina
+    ) throws SQLException;
+
+    // Total de registros para paginación original
     int contarVentas(
             String texto
+    ) throws SQLException;
+
+    // Total de registros con filtro por fecha
+    int contarVentas(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
     ) throws SQLException;
 
     // Consultar una venta
