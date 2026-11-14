@@ -4,6 +4,7 @@ import factory.UsuarioConcretoFactory;
 import factory.UsuarioFactory;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.servlet.ServletException;
@@ -25,7 +26,7 @@ import repository.UsuarioRepository;
 import repository.UsuarioRepositoryImpl;
 
 import util.PasswordUtil;
-
+import util.FechaUtil;
 
 @WebServlet(
         name = "UsuarioController",
@@ -37,7 +38,6 @@ public class UsuarioController extends HttpServlet {
     private UsuarioFactory usuarioFactory;
     private CatalogoRepository catalogoRepository;
 
-
     // =========================================================
     // INICIALIZACIÓN
     // =========================================================
@@ -45,16 +45,12 @@ public class UsuarioController extends HttpServlet {
     @Override
     public void init() throws ServletException {
 
-        usuarioRepository =
-                new UsuarioRepositoryImpl();
+        usuarioRepository = new UsuarioRepositoryImpl();
 
-        usuarioFactory =
-                new UsuarioConcretoFactory();
+        usuarioFactory = new UsuarioConcretoFactory();
 
-        catalogoRepository =
-                new CatalogoRepository();
+        catalogoRepository = new CatalogoRepository();
     }
-
 
     // =========================================================
     // GET
@@ -66,85 +62,45 @@ public class UsuarioController extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        HttpSession sesion =
-                validarAdministrador(
-                        request,
-                        response
-                );
+        HttpSession sesion = validarAdministrador(
+                request,
+                response
+        );
 
         if (sesion == null) {
             return;
         }
 
+        String accion = request.getParameter("accion");
 
-        String accion =
-                request.getParameter("accion");
-
-
-        if (accion == null
-                || accion.trim().isEmpty()) {
-
+        if (accion == null || accion.trim().isEmpty()) {
             accion = "listar";
         }
-
 
         switch (accion.toLowerCase()) {
 
             case "nuevo":
-
-                mostrarFormularioNuevo(
-                        request,
-                        response
-                );
-
+                mostrarFormularioNuevo(request, response);
                 break;
-
 
             case "editar":
-
-                mostrarFormularioEditar(
-                        request,
-                        response,
-                        sesion
-                );
-
+                mostrarFormularioEditar(request, response, sesion);
                 break;
-
 
             case "eliminar":
-
-                eliminarUsuario(
-                        request,
-                        response,
-                        sesion
-                );
-
+                eliminarUsuario(request, response, sesion);
                 break;
-
 
             case "deshacer":
-
-                deshacerCambio(
-                        request,
-                        response,
-                        sesion
-                );
-
+                deshacerCambio(request, response, sesion);
                 break;
-
 
             case "listar":
             default:
-
-                listarUsuarios(
-                        request,
-                        response
-                );
-
+                listarUsuarios(request, response);
                 break;
         }
     }
-
 
     // =========================================================
     // POST
@@ -158,69 +114,43 @@ public class UsuarioController extends HttpServlet {
 
         request.setCharacterEncoding("UTF-8");
 
-
-        HttpSession sesion =
-                validarAdministrador(
-                        request,
-                        response
-                );
-
+        HttpSession sesion = validarAdministrador(
+                request,
+                response
+        );
 
         if (sesion == null) {
             return;
         }
 
-
-        String accion =
-                request.getParameter("accion");
-
+        String accion = request.getParameter("accion");
 
         if (accion == null) {
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
             );
-
             return;
         }
-
 
         switch (accion.toLowerCase()) {
 
             case "registrar":
-
-                registrarUsuario(
-                        request,
-                        response,
-                        sesion
-                );
-
+                registrarUsuario(request, response, sesion);
                 break;
-
 
             case "actualizar":
-
-                actualizarUsuario(
-                        request,
-                        response,
-                        sesion
-                );
-
+                actualizarUsuario(request, response, sesion);
                 break;
 
-
             default:
-
                 response.sendRedirect(
                         request.getContextPath()
                         + "/UsuarioController"
                 );
-
                 break;
         }
     }
-
 
     // =========================================================
     // VALIDAR ADMINISTRADOR
@@ -231,9 +161,7 @@ public class UsuarioController extends HttpServlet {
             HttpServletResponse response)
             throws IOException {
 
-        HttpSession sesion =
-                request.getSession(false);
-
+        HttpSession sesion = request.getSession(false);
 
         if (sesion == null
                 || sesion.getAttribute("usuario") == null) {
@@ -246,11 +174,7 @@ public class UsuarioController extends HttpServlet {
             return null;
         }
 
-
-        Integer idRol =
-                (Integer)
-                sesion.getAttribute("idRol");
-
+        Integer idRol = (Integer) sesion.getAttribute("idRol");
 
         if (idRol == null || idRol != 1) {
 
@@ -262,40 +186,26 @@ public class UsuarioController extends HttpServlet {
             return null;
         }
 
-
         return sesion;
     }
-
 
     // =========================================================
     // CARGAR ROLES Y PERMISOS
     // =========================================================
 
-    private void cargarCatalogos(
-            HttpServletRequest request) {
+    private void cargarCatalogos(HttpServletRequest request) {
 
-        List<Rol> roles =
-                catalogoRepository.listarRolesActivos();
+        List<Rol> roles = catalogoRepository.listarRolesActivos();
 
         List<Permiso> permisos =
                 catalogoRepository.listarPermisosActivos();
 
-
-        request.setAttribute(
-                "roles",
-                roles
-        );
-
-
-        request.setAttribute(
-                "permisos",
-                permisos
-        );
+        request.setAttribute("roles", roles);
+        request.setAttribute("permisos", permisos);
     }
 
-
     // =========================================================
-    // LISTAR USUARIOS
+    // LISTAR USUARIOS CON FILTRO POR FECHA
     // =========================================================
 
     private void listarUsuarios(
@@ -303,24 +213,33 @@ public class UsuarioController extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        List<Usuario> usuarios =
-                usuarioRepository.listar();
-
-
-        request.setAttribute(
-                "usuarios",
-                usuarios
+        LocalDate[] rangoFechas = FechaUtil.rango(
+                request.getParameter("fechaDesde"),
+                request.getParameter("fechaHasta")
         );
 
+        LocalDate fechaDesde = rangoFechas[0];
+        LocalDate fechaHasta = rangoFechas[1];
+
+        List<Usuario> usuarios =
+                usuarioRepository.listar(fechaDesde, fechaHasta);
+
+        request.setAttribute("usuarios", usuarios);
+
+        request.setAttribute(
+                "fechaDesde",
+                FechaUtil.texto(fechaDesde)
+        );
+
+        request.setAttribute(
+                "fechaHasta",
+                FechaUtil.texto(fechaHasta)
+        );
 
         request.getRequestDispatcher(
                 "/usuarios.jsp"
-        ).forward(
-                request,
-                response
-        );
+        ).forward(request, response);
     }
-
 
     // =========================================================
     // NUEVO
@@ -333,21 +252,12 @@ public class UsuarioController extends HttpServlet {
 
         cargarCatalogos(request);
 
-
-        request.setAttribute(
-                "modo",
-                "nuevo"
-        );
-
+        request.setAttribute("modo", "nuevo");
 
         request.getRequestDispatcher(
                 "/usuario-form.jsp"
-        ).forward(
-                request,
-                response
-        );
+        ).forward(request, response);
     }
-
 
     // =========================================================
     // REGISTRAR
@@ -361,30 +271,19 @@ public class UsuarioController extends HttpServlet {
             throws ServletException, IOException {
 
         String nombreUsuario =
-                request.getParameter(
-                        "nombreUsuario"
-                );
+                request.getParameter("nombreUsuario");
 
         String correo =
-                request.getParameter(
-                        "correo"
-                );
+                request.getParameter("correo");
 
         String contrasena =
-                request.getParameter(
-                        "contrasena"
-                );
+                request.getParameter("contrasena");
 
         String idRolTexto =
-                request.getParameter(
-                        "idRol"
-                );
+                request.getParameter("idRol");
 
         String idPermisoTexto =
-                request.getParameter(
-                        "idPermiso"
-                );
-
+                request.getParameter("idPermiso");
 
         if (nombreUsuario == null
                 || nombreUsuario.trim().isEmpty()
@@ -404,7 +303,6 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         if (contrasena.length() < 8) {
 
             volverFormularioNuevo(
@@ -416,24 +314,14 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         int idRol;
         Integer idPermiso;
 
-
         try {
 
-            idRol =
-                    Integer.parseInt(
-                            idRolTexto
-                    );
+            idRol = Integer.parseInt(idRolTexto);
 
-
-            idPermiso =
-                    convertirIntegerNullable(
-                            idPermisoTexto
-                    );
-
+            idPermiso = convertirIntegerNullable(idPermisoTexto);
 
         } catch (NumberFormatException e) {
 
@@ -446,19 +334,11 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         String contrasenaHash =
-                PasswordUtil.generarHash(
-                        contrasena
-                );
-
+                PasswordUtil.generarHash(contrasena);
 
         String usuarioRegistro =
-                (String)
-                sesion.getAttribute(
-                        "usuario"
-                );
-
+                (String) sesion.getAttribute("usuario");
 
         Usuario nuevoUsuario =
                 usuarioFactory.crearUsuario(
@@ -470,12 +350,8 @@ public class UsuarioController extends HttpServlet {
                         usuarioRegistro
                 );
 
-
         boolean registrado =
-                usuarioRepository.registrar(
-                        nuevoUsuario
-                );
-
+                usuarioRepository.registrar(nuevoUsuario);
 
         if (registrado) {
 
@@ -484,12 +360,10 @@ public class UsuarioController extends HttpServlet {
                     "Usuario registrado correctamente."
             );
 
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
             );
-
 
         } else {
 
@@ -501,7 +375,6 @@ public class UsuarioController extends HttpServlet {
             );
         }
     }
-
 
     // =========================================================
     // VOLVER AL FORMULARIO NUEVO
@@ -515,27 +388,14 @@ public class UsuarioController extends HttpServlet {
 
         cargarCatalogos(request);
 
+        request.setAttribute("modo", "nuevo");
 
-        request.setAttribute(
-                "modo",
-                "nuevo"
-        );
-
-
-        request.setAttribute(
-                "mensajeError",
-                mensaje
-        );
-
+        request.setAttribute("mensajeError", mensaje);
 
         request.getRequestDispatcher(
                 "/usuario-form.jsp"
-        ).forward(
-                request,
-                response
-        );
+        ).forward(request, response);
     }
-
 
     // =========================================================
     // EDITAR
@@ -549,16 +409,11 @@ public class UsuarioController extends HttpServlet {
 
         int idUsuario;
 
-
         try {
 
-            idUsuario =
-                    Integer.parseInt(
-                            request.getParameter(
-                                    "id"
-                            )
-                    );
-
+            idUsuario = Integer.parseInt(
+                    request.getParameter("id")
+            );
 
         } catch (Exception e) {
 
@@ -570,12 +425,8 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         Usuario usuario =
-                usuarioRepository.buscarPorId(
-                        idUsuario
-                );
-
+                usuarioRepository.buscarPorId(idUsuario);
 
         if (usuario == null) {
 
@@ -587,55 +438,31 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         // Guardamos estado anterior con Memento
 
-        UsuarioCaretaker caretaker =
-                new UsuarioCaretaker();
+        UsuarioCaretaker caretaker = new UsuarioCaretaker();
 
+        caretaker.guardar(usuario.crearMemento());
 
-        caretaker.guardar(
-                usuario.crearMemento()
-        );
-
-
-        sesion.setAttribute(
-                "usuarioCaretaker",
-                caretaker
-        );
-
+        sesion.setAttribute("usuarioCaretaker", caretaker);
 
         sesion.setAttribute(
                 "usuarioMementoId",
                 usuario.getIdUsuario()
         );
 
-
         // Cargar catálogos de MySQL
 
         cargarCatalogos(request);
 
+        request.setAttribute("usuarioEditar", usuario);
 
-        request.setAttribute(
-                "usuarioEditar",
-                usuario
-        );
-
-
-        request.setAttribute(
-                "modo",
-                "editar"
-        );
-
+        request.setAttribute("modo", "editar");
 
         request.getRequestDispatcher(
                 "/usuario-form.jsp"
-        ).forward(
-                request,
-                response
-        );
+        ).forward(request, response);
     }
-
 
     // =========================================================
     // ACTUALIZAR
@@ -652,32 +479,19 @@ public class UsuarioController extends HttpServlet {
         int idRol;
         Integer idPermiso;
 
-
         try {
 
-            idUsuario =
-                    Integer.parseInt(
-                            request.getParameter(
-                                    "idUsuario"
-                            )
-                    );
+            idUsuario = Integer.parseInt(
+                    request.getParameter("idUsuario")
+            );
 
+            idRol = Integer.parseInt(
+                    request.getParameter("idRol")
+            );
 
-            idRol =
-                    Integer.parseInt(
-                            request.getParameter(
-                                    "idRol"
-                            )
-                    );
-
-
-            idPermiso =
-                    convertirIntegerNullable(
-                            request.getParameter(
-                                    "idPermiso"
-                            )
-                    );
-
+            idPermiso = convertirIntegerNullable(
+                    request.getParameter("idPermiso")
+            );
 
         } catch (Exception e) {
 
@@ -685,7 +499,6 @@ public class UsuarioController extends HttpServlet {
                     "mensajeError",
                     "Los datos ingresados no son válidos."
             );
-
 
             response.sendRedirect(
                     request.getContextPath()
@@ -695,18 +508,11 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         String nombreUsuario =
-                request.getParameter(
-                        "nombreUsuario"
-                );
-
+                request.getParameter("nombreUsuario");
 
         String correo =
-                request.getParameter(
-                        "correo"
-                );
-
+                request.getParameter("correo");
 
         if (nombreUsuario == null
                 || nombreUsuario.trim().isEmpty()
@@ -718,7 +524,6 @@ public class UsuarioController extends HttpServlet {
                     "El nombre de usuario y correo son obligatorios."
             );
 
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
@@ -727,12 +532,8 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         Usuario usuario =
-                usuarioRepository.buscarPorId(
-                        idUsuario
-                );
-
+                usuarioRepository.buscarPorId(idUsuario);
 
         if (usuario == null) {
 
@@ -741,7 +542,6 @@ public class UsuarioController extends HttpServlet {
                     "El usuario no existe."
             );
 
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
@@ -750,107 +550,61 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         // =====================================================
         // ASEGURAR MEMENTO
         // =====================================================
 
         UsuarioCaretaker caretaker =
-                (UsuarioCaretaker)
-                sesion.getAttribute(
+                (UsuarioCaretaker) sesion.getAttribute(
                         "usuarioCaretaker"
                 );
 
-
         Integer idMemento =
-                (Integer)
-                sesion.getAttribute(
+                (Integer) sesion.getAttribute(
                         "usuarioMementoId"
                 );
-
 
         if (caretaker == null
                 || idMemento == null
                 || idMemento != idUsuario) {
 
-            caretaker =
-                    new UsuarioCaretaker();
+            caretaker = new UsuarioCaretaker();
 
+            caretaker.guardar(usuario.crearMemento());
 
-            caretaker.guardar(
-                    usuario.crearMemento()
-            );
+            sesion.setAttribute("usuarioCaretaker", caretaker);
 
-
-            sesion.setAttribute(
-                    "usuarioCaretaker",
-                    caretaker
-            );
-
-
-            sesion.setAttribute(
-                    "usuarioMementoId",
-                    idUsuario
-            );
+            sesion.setAttribute("usuarioMementoId", idUsuario);
         }
-
 
         // =====================================================
         // NUEVOS DATOS
         // =====================================================
 
-        usuario.setNombreUsuario(
-                nombreUsuario.trim()
-        );
+        usuario.setNombreUsuario(nombreUsuario.trim());
 
+        usuario.setCorreo(correo.trim());
 
-        usuario.setCorreo(
-                correo.trim()
-        );
+        usuario.setIdRol(idRol);
 
-
-        usuario.setIdRol(
-                idRol
-        );
-
-
-        usuario.setIdPermiso(
-                idPermiso
-        );
-
+        usuario.setIdPermiso(idPermiso);
 
         boolean estado =
-                request.getParameter(
-                        "estado"
-                ) != null;
-
+                request.getParameter("estado") != null;
 
         boolean bloqueado =
-                request.getParameter(
-                        "bloqueado"
-                ) != null;
+                request.getParameter("bloqueado") != null;
 
+        usuario.setEstado(estado);
 
-        usuario.setEstado(
-                estado
-        );
-
-
-        usuario.setBloqueado(
-                bloqueado
-        );
-
+        usuario.setBloqueado(bloqueado);
 
         // =====================================================
         // PROTEGER USUARIO DE SESIÓN
         // =====================================================
 
         Integer idUsuarioSesion =
-                (Integer)
-                sesion.getAttribute(
-                        "idUsuario"
-                );
-
+                (Integer) sesion.getAttribute("idUsuario");
 
         if (idUsuarioSesion != null
                 && idUsuarioSesion == idUsuario) {
@@ -859,12 +613,8 @@ public class UsuarioController extends HttpServlet {
             usuario.setBloqueado(false);
         }
 
-
         boolean actualizado =
-                usuarioRepository.actualizar(
-                        usuario
-                );
-
+                usuarioRepository.actualizar(usuario);
 
         if (actualizado) {
 
@@ -877,18 +627,12 @@ public class UsuarioController extends HttpServlet {
                 );
             }
 
-
             sesion.setAttribute(
                     "mensajeExito",
                     "Usuario actualizado correctamente."
             );
 
-
-            sesion.setAttribute(
-                    "mostrarDeshacer",
-                    true
-            );
-
+            sesion.setAttribute("mostrarDeshacer", true);
 
         } else {
 
@@ -898,13 +642,11 @@ public class UsuarioController extends HttpServlet {
             );
         }
 
-
         response.sendRedirect(
                 request.getContextPath()
                 + "/UsuarioController"
         );
     }
-
 
     // =========================================================
     // ELIMINAR LÓGICAMENTE
@@ -918,16 +660,11 @@ public class UsuarioController extends HttpServlet {
 
         int idUsuario;
 
-
         try {
 
-            idUsuario =
-                    Integer.parseInt(
-                            request.getParameter(
-                                    "id"
-                            )
-                    );
-
+            idUsuario = Integer.parseInt(
+                    request.getParameter("id")
+            );
 
         } catch (Exception e) {
 
@@ -939,13 +676,8 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         Integer idUsuarioSesion =
-                (Integer)
-                sesion.getAttribute(
-                        "idUsuario"
-                );
-
+                (Integer) sesion.getAttribute("idUsuario");
 
         if (idUsuarioSesion != null
                 && idUsuarioSesion == idUsuario) {
@@ -955,7 +687,6 @@ public class UsuarioController extends HttpServlet {
                     "No puede desactivar su propio usuario."
             );
 
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
@@ -964,12 +695,8 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         Usuario usuario =
-                usuarioRepository.buscarPorId(
-                        idUsuario
-                );
-
+                usuarioRepository.buscarPorId(idUsuario);
 
         if (usuario == null) {
 
@@ -978,7 +705,6 @@ public class UsuarioController extends HttpServlet {
                     "El usuario no existe."
             );
 
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
@@ -987,35 +713,18 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         // Guardar estado anterior
 
-        UsuarioCaretaker caretaker =
-                new UsuarioCaretaker();
+        UsuarioCaretaker caretaker = new UsuarioCaretaker();
 
+        caretaker.guardar(usuario.crearMemento());
 
-        caretaker.guardar(
-                usuario.crearMemento()
-        );
+        sesion.setAttribute("usuarioCaretaker", caretaker);
 
-
-        sesion.setAttribute(
-                "usuarioCaretaker",
-                caretaker
-        );
-
-
-        sesion.setAttribute(
-                "usuarioMementoId",
-                idUsuario
-        );
-
+        sesion.setAttribute("usuarioMementoId", idUsuario);
 
         boolean eliminado =
-                usuarioRepository.eliminar(
-                        idUsuario
-                );
-
+                usuarioRepository.eliminar(idUsuario);
 
         if (eliminado) {
 
@@ -1024,12 +733,7 @@ public class UsuarioController extends HttpServlet {
                     "Usuario desactivado correctamente."
             );
 
-
-            sesion.setAttribute(
-                    "mostrarDeshacer",
-                    true
-            );
-
+            sesion.setAttribute("mostrarDeshacer", true);
 
         } else {
 
@@ -1039,13 +743,11 @@ public class UsuarioController extends HttpServlet {
             );
         }
 
-
         response.sendRedirect(
                 request.getContextPath()
                 + "/UsuarioController"
         );
     }
-
 
     // =========================================================
     // DESHACER
@@ -1059,18 +761,14 @@ public class UsuarioController extends HttpServlet {
             throws IOException {
 
         UsuarioCaretaker caretaker =
-                (UsuarioCaretaker)
-                sesion.getAttribute(
+                (UsuarioCaretaker) sesion.getAttribute(
                         "usuarioCaretaker"
                 );
 
-
         Integer idUsuario =
-                (Integer)
-                sesion.getAttribute(
+                (Integer) sesion.getAttribute(
                         "usuarioMementoId"
                 );
-
 
         if (caretaker == null
                 || idUsuario == null
@@ -1081,7 +779,6 @@ public class UsuarioController extends HttpServlet {
                     "No existe ningún cambio para deshacer."
             );
 
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
@@ -1090,12 +787,8 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         Usuario usuario =
-                usuarioRepository.buscarPorId(
-                        idUsuario
-                );
-
+                usuarioRepository.buscarPorId(idUsuario);
 
         if (usuario == null) {
 
@@ -1104,7 +797,6 @@ public class UsuarioController extends HttpServlet {
                     "No se encontró el usuario."
             );
 
-
             response.sendRedirect(
                     request.getContextPath()
                     + "/UsuarioController"
@@ -1113,48 +805,26 @@ public class UsuarioController extends HttpServlet {
             return;
         }
 
-
         UsuarioMemento estadoAnterior =
                 caretaker.obtenerEstadoAnterior();
 
-
-        usuario.restaurarMemento(
-                estadoAnterior
-        );
-
+        usuario.restaurarMemento(estadoAnterior);
 
         boolean restaurado =
-                usuarioRepository.actualizar(
-                        usuario
-                );
-
+                usuarioRepository.actualizar(usuario);
 
         if (restaurado) {
 
             caretaker.limpiar();
 
+            sesion.removeAttribute("usuarioMementoId");
 
-            sesion.removeAttribute(
-                    "usuarioMementoId"
-            );
+            sesion.removeAttribute("usuarioCaretaker");
 
-
-            sesion.removeAttribute(
-                    "usuarioCaretaker"
-            );
-
-
-            sesion.removeAttribute(
-                    "mostrarDeshacer"
-            );
-
+            sesion.removeAttribute("mostrarDeshacer");
 
             Integer idUsuarioSesion =
-                    (Integer)
-                    sesion.getAttribute(
-                            "idUsuario"
-                    );
-
+                    (Integer) sesion.getAttribute("idUsuario");
 
             if (idUsuarioSesion != null
                     && idUsuarioSesion == idUsuario) {
@@ -1165,12 +835,10 @@ public class UsuarioController extends HttpServlet {
                 );
             }
 
-
             sesion.setAttribute(
                     "mensajeExito",
                     "El último cambio fue deshecho correctamente."
             );
-
 
         } else {
 
@@ -1180,31 +848,23 @@ public class UsuarioController extends HttpServlet {
             );
         }
 
-
         response.sendRedirect(
                 request.getContextPath()
                 + "/UsuarioController"
         );
     }
 
-
     // =========================================================
     // INTEGER NULLABLE
     // =========================================================
 
-    private Integer convertirIntegerNullable(
-            String valor)
+    private Integer convertirIntegerNullable(String valor)
             throws NumberFormatException {
 
-        if (valor == null
-                || valor.trim().isEmpty()) {
-
+        if (valor == null || valor.trim().isEmpty()) {
             return null;
         }
 
-
-        return Integer.valueOf(
-                valor.trim()
-        );
+        return Integer.valueOf(valor.trim());
     }
 }
