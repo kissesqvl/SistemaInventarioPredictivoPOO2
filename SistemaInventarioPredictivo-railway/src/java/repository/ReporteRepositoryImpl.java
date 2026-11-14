@@ -1,3 +1,4 @@
+
 package repository;
 
 import util.ConexionBD;
@@ -135,7 +136,8 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "v.total AS total, " +
                 "v.estado AS estado " +
                 "FROM Venta v " +
-                "WHERE v.fechaVenta >= ? " +
+                "WHERE v.estado = 'Registrada' " +
+                "AND v.fechaVenta >= ? " +
                 "AND v.fechaVenta < ? " +
                 "ORDER BY v.fechaVenta DESC, v.idVenta DESC";
 
@@ -283,6 +285,9 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "AND v.estado = 'Registrada' " +
                 "WHERE 1 = 1 "
         );
+
+        // Filtra por la fecha de registro del cliente.
+        // Los clientes sin compras también aparecen.
 
         agregarRangoFechas(
                 sql,
