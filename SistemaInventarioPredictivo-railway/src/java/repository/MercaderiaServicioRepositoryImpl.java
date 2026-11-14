@@ -1,4 +1,3 @@
-
 package repository;
 
 import java.sql.Connection;
@@ -8,6 +7,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -450,232 +450,167 @@ public class MercaderiaServicioRepositoryImpl
     }
 
     // ==========================================
+    // CONSTRUIR FILTRO (TEXTO + RANGO DE FECHAS)
+    // ==========================================
+
+    private String construirFiltro(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            List<Object> parametros) {
+
+        List<String> condiciones = new ArrayList<>();
+
+        if (texto != null && !texto.isBlank()) {
+
+            condiciones.add("(nombre LIKE ? OR descripcion LIKE ?)");
+
+            String patron = "%" + texto.trim() + "%";
+
+            for (int i = 0; i < 2; i++) {
+                parametros.add(patron);
+            }
+        }
+
+        if (fechaDesde != null) {
+            condiciones.add("fechaCreacion >= ?");
+            parametros.add(Timestamp.valueOf(fechaDesde.atStartOfDay()));
+        }
+
+        if (fechaHasta != null) {
+            condiciones.add("fechaCreacion < ?");
+            parametros.add(Timestamp.valueOf(
+                    fechaHasta.plusDays(1).atStartOfDay()));
+        }
+
+        if (condiciones.isEmpty()) {
+            return "";
+        }
+
+        return "WHERE " + String.join(" AND ", condiciones) + " ";
+    }
+
+    // ==========================================
     // LISTAR CON PAGINACION
     // ==========================================
 
     @Override
     public List<MercaderiaServicio> listarPaginado(
-            int pagina,
-            int tamanioPagina) {
+            int pagina, int tamanioPagina) {
 
-        List<MercaderiaServicio> lista =
-                new ArrayList<>();
-
-        int paginaSegura = Math.max(
-                1,
-                pagina
-        );
-
-        int tamanioSeguro = Math.max(
-                1,
-                Math.min(100, tamanioPagina)
-        );
-
-        long offset = (
-                (long) paginaSegura - 1
-        ) * tamanioSeguro;
-
-        String sql = SELECT_BASE + """
-            ORDER BY idMercaderiaServicio DESC
-            LIMIT ? OFFSET ?
-            """;
-
-        try (Connection conexion =
-                    ConexionBD.getConexion();
-
-             PreparedStatement ps =
-                    conexion.prepareStatement(sql)) {
-
-            ps.setInt(
-                    1,
-                    tamanioSeguro
-            );
-
-            ps.setLong(
-                    2,
-                    offset
-            );
-
-            try (ResultSet rs =
-                    ps.executeQuery()) {
-
-                while (rs.next()) {
-
-                    lista.add(
-                            convertir(rs)
-                    );
-                }
-            }
-
-        } catch (SQLException e) {
-
-            throw new IllegalStateException(
-                    "Error al listar mercadería paginada.",
-                    e
-            );
-        }
-
-        return lista;
+        return buscarPaginado("", null, null, pagina, tamanioPagina);
     }
 
     // ==========================================
-    // BUSCAR CON PAGINACION
+    // BUSCAR CON PAGINACION (SOLO TEXTO)
+    // ==========================================
+
+    @Override
+    public List<MercaderiaServicio> buscarPaginado(
+            String texto, int pagina, int tamanioPagina) {
+
+        return buscarPaginado(texto, null, null, pagina, tamanioPagina);
+    }
+
+    // ==========================================
+    // BUSCAR CON PAGINACION (TEXTO + FECHAS)
     // ==========================================
 
     @Override
     public List<MercaderiaServicio> buscarPaginado(
             String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
             int pagina,
             int tamanioPagina) {
 
-        List<MercaderiaServicio> lista =
-                new ArrayList<>();
+        List<MercaderiaServicio> lista = new ArrayList<>();
 
-        int paginaSegura = Math.max(
-                1,
-                pagina
-        );
+        int paginaSegura = Math.max(1, pagina);
+        int tamanioSeguro = Math.max(1, Math.min(100, tamanioPagina));
+        long offset = ((long) paginaSegura - 1) * tamanioSeguro;
 
-        int tamanioSeguro = Math.max(
-                1,
-                Math.min(100, tamanioPagina)
-        );
+        List<Object> parametros = new ArrayList<>();
 
-        long offset = (
-                (long) paginaSegura - 1
-        ) * tamanioSeguro;
-
-        String filtro = "%"
-                + (texto == null
-                    ? "" : texto.trim())
-                + "%";
+        String filtro = construirFiltro(
+                texto, fechaDesde, fechaHasta, parametros);
 
         String sql = SELECT_BASE
-                + FILTRO_BUSQUEDA
-                + """
-                    ORDER BY idMercaderiaServicio DESC
-                    LIMIT ? OFFSET ?
-                    """;
+                + filtro
+                + "ORDER BY idMercaderiaServicio DESC LIMIT ? OFFSET ?";
 
-        try (Connection conexion =
-                    ConexionBD.getConexion();
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps = conexion.prepareStatement(sql)
+        ) {
 
-             PreparedStatement ps =
-                    conexion.prepareStatement(sql)) {
+            int indice = 1;
 
-            ps.setString(
-                    1,
-                    filtro
-            );
+            for (Object parametro : parametros) {
+                ps.setObject(indice++, parametro);
+            }
 
-            ps.setString(
-                    2,
-                    filtro
-            );
+            ps.setInt(indice++, tamanioSeguro);
+            ps.setLong(indice, offset);
 
-            ps.setInt(
-                    3,
-                    tamanioSeguro
-            );
-
-            ps.setLong(
-                    4,
-                    offset
-            );
-
-            try (ResultSet rs =
-                    ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-
-                    lista.add(
-                            convertir(rs)
-                    );
+                    lista.add(convertir(rs));
                 }
             }
 
         } catch (SQLException e) {
-
             throw new IllegalStateException(
-                    "Error al buscar mercadería paginada.",
-                    e
-            );
+                    "Error al buscar mercadería paginada.", e);
         }
 
         return lista;
     }
 
     // ==========================================
-    // CONTAR MERCADERIA Y SERVICIOS
+    // CONTAR
     // ==========================================
 
     @Override
+    public long contarMercaderia(String texto) {
+        return contarMercaderia(texto, null, null);
+    }
+
+    @Override
     public long contarMercaderia(
-            String texto) {
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta) {
 
-        boolean tieneFiltro =
-                texto != null
-                && !texto.trim().isEmpty();
+        List<Object> parametros = new ArrayList<>();
 
-        String sql;
+        String filtro = construirFiltro(
+                texto, fechaDesde, fechaHasta, parametros);
 
-        if (tieneFiltro) {
+        String sql = "SELECT COUNT(*) AS total "
+                + "FROM MercaderiaServicio "
+                + filtro;
 
-            sql = """
-                SELECT COUNT(*) AS total
-                FROM MercaderiaServicio
-                WHERE nombre LIKE ?
-                   OR descripcion LIKE ?
-                """;
+        try (
+            Connection conexion = ConexionBD.getConexion();
+            PreparedStatement ps = conexion.prepareStatement(sql)
+        ) {
 
-        } else {
+            int indice = 1;
 
-            sql = """
-                SELECT COUNT(*) AS total
-                FROM MercaderiaServicio
-                """;
-        }
-
-        try (Connection conexion =
-                    ConexionBD.getConexion();
-
-             PreparedStatement ps =
-                    conexion.prepareStatement(sql)) {
-
-            if (tieneFiltro) {
-
-                String filtro = "%"
-                        + texto.trim()
-                        + "%";
-
-                ps.setString(
-                        1,
-                        filtro
-                );
-
-                ps.setString(
-                        2,
-                        filtro
-                );
+            for (Object parametro : parametros) {
+                ps.setObject(indice++, parametro);
             }
 
-            try (ResultSet rs =
-                    ps.executeQuery()) {
-
+            try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-
-                    return rs.getLong(
-                            "total"
-                    );
+                    return rs.getLong("total");
                 }
             }
 
         } catch (SQLException e) {
-
             throw new IllegalStateException(
-                    "Error al contar mercadería y servicios.",
-                    e
-            );
+                    "Error al contar mercadería y servicios.", e);
         }
 
         return 0;
