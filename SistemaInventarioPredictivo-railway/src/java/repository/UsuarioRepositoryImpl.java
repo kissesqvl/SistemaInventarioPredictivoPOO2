@@ -4,17 +4,17 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 import model.Usuario;
 import util.ConexionBD;
 
-
 public class UsuarioRepositoryImpl
         implements UsuarioRepository {
-
 
     // =========================================================
     // LISTAR USUARIOS
@@ -22,58 +22,76 @@ public class UsuarioRepositoryImpl
 
     @Override
     public List<Usuario> listar() {
+        return listar(null, null);
+    }
+
+    // =========================================================
+    // LISTAR USUARIOS POR FECHA DE CREACIÓN
+    // =========================================================
+
+    @Override
+    public List<Usuario> listar(
+            LocalDate fechaDesde,
+            LocalDate fechaHasta) {
 
         List<Usuario> usuarios = new ArrayList<>();
+        List<Object> parametros = new ArrayList<>();
 
-        String sql =
-                "SELECT idUsuario, "
-                + "nombreUsuario, "
-                + "correo, "
-                + "contrasenaHash, "
-                + "idRol, "
-                + "idPermiso, "
-                + "ultimoAcceso, "
-                + "intentosFallidos, "
-                + "bloqueado, "
-                + "tokenRecuperacion, "
-                + "fechaCreacion, "
-                + "fechaActualizacion, "
-                + "usuarioRegistro, "
-                + "estado "
-                + "FROM Usuario "
-                + "ORDER BY idUsuario ASC";
+        StringBuilder sql = new StringBuilder(
+                "SELECT idUsuario, nombreUsuario, correo, "
+                + "contrasenaHash, idRol, idPermiso, ultimoAcceso, "
+                + "intentosFallidos, bloqueado, tokenRecuperacion, "
+                + "fechaCreacion, fechaActualizacion, "
+                + "usuarioRegistro, estado "
+                + "FROM Usuario WHERE 1 = 1 "
+        );
 
+        if (fechaDesde != null) {
+            sql.append("AND fechaCreacion >= ? ");
+            parametros.add(
+                    Timestamp.valueOf(fechaDesde.atStartOfDay())
+            );
+        }
+
+        if (fechaHasta != null) {
+            sql.append("AND fechaCreacion < ? ");
+            parametros.add(
+                    Timestamp.valueOf(
+                            fechaHasta.plusDays(1).atStartOfDay()
+                    )
+            );
+        }
+
+        sql.append("ORDER BY idUsuario ASC");
 
         try (
-            Connection conexion =
-                    ConexionBD.getConexion();
-
+            Connection conexion = ConexionBD.getConexion();
             PreparedStatement sentencia =
-                    conexion.prepareStatement(sql);
-
-            ResultSet resultado =
-                    sentencia.executeQuery()
+                    conexion.prepareStatement(sql.toString())
         ) {
 
-            while (resultado.next()) {
+            int indice = 1;
 
-                Usuario usuario =
-                        convertirUsuario(resultado);
+            for (Object parametro : parametros) {
+                sentencia.setObject(indice++, parametro);
+            }
 
-                usuarios.add(usuario);
+            try (ResultSet resultado = sentencia.executeQuery()) {
+
+                while (resultado.next()) {
+                    usuarios.add(convertirUsuario(resultado));
+                }
             }
 
         } catch (SQLException e) {
-
             System.err.println(
-                    "Error al listar usuarios: "
+                    "Error al listar usuarios por fecha: "
                     + e.getMessage()
             );
         }
 
         return usuarios;
     }
-
 
     // =========================================================
     // BUSCAR USUARIO POR ID
@@ -100,36 +118,22 @@ public class UsuarioRepositoryImpl
                 + "FROM Usuario "
                 + "WHERE idUsuario = ?";
 
-
         try (
-            Connection conexion =
-                    ConexionBD.getConexion();
-
+            Connection conexion = ConexionBD.getConexion();
             PreparedStatement sentencia =
                     conexion.prepareStatement(sql)
         ) {
 
-            sentencia.setInt(
-                    1,
-                    idUsuario
-            );
+            sentencia.setInt(1, idUsuario);
 
-
-            try (
-                ResultSet resultado =
-                        sentencia.executeQuery()
-            ) {
+            try (ResultSet resultado = sentencia.executeQuery()) {
 
                 if (resultado.next()) {
-
-                    return convertirUsuario(
-                            resultado
-                    );
+                    return convertirUsuario(resultado);
                 }
             }
 
         } catch (SQLException e) {
-
             System.err.println(
                     "Error al buscar usuario: "
                     + e.getMessage()
@@ -138,7 +142,6 @@ public class UsuarioRepositoryImpl
 
         return null;
     }
-
 
     // =========================================================
     // REGISTRAR USUARIO
@@ -165,11 +168,8 @@ public class UsuarioRepositoryImpl
                 + "VALUES (?, ?, ?, ?, ?, 0, 0, "
                 + "NOW(), NOW(), ?, 1)";
 
-
         try (
-            Connection conexion =
-                    ConexionBD.getConexion();
-
+            Connection conexion = ConexionBD.getConexion();
             PreparedStatement sentencia =
                     conexion.prepareStatement(sql)
         ) {
@@ -194,38 +194,28 @@ public class UsuarioRepositoryImpl
                     usuario.getIdRol()
             );
 
-
             if (usuario.getIdPermiso() != null) {
-
                 sentencia.setInt(
                         5,
                         usuario.getIdPermiso()
                 );
-
             } else {
-
                 sentencia.setNull(
                         5,
                         java.sql.Types.INTEGER
                 );
             }
 
-
             sentencia.setString(
                     6,
                     usuario.getUsuarioRegistro()
             );
 
-
-            int filas =
-                    sentencia.executeUpdate();
-
+            int filas = sentencia.executeUpdate();
 
             return filas > 0;
 
-
         } catch (SQLException e) {
-
             System.err.println(
                     "Error al registrar usuario: "
                     + e.getMessage()
@@ -234,7 +224,6 @@ public class UsuarioRepositoryImpl
             return false;
         }
     }
-
 
     // =========================================================
     // ACTUALIZAR USUARIO
@@ -255,11 +244,8 @@ public class UsuarioRepositoryImpl
                 + "fechaActualizacion = NOW() "
                 + "WHERE idUsuario = ?";
 
-
         try (
-            Connection conexion =
-                    ConexionBD.getConexion();
-
+            Connection conexion = ConexionBD.getConexion();
             PreparedStatement sentencia =
                     conexion.prepareStatement(sql)
         ) {
@@ -279,22 +265,17 @@ public class UsuarioRepositoryImpl
                     usuario.getIdRol()
             );
 
-
             if (usuario.getIdPermiso() != null) {
-
                 sentencia.setInt(
                         4,
                         usuario.getIdPermiso()
                 );
-
             } else {
-
                 sentencia.setNull(
                         4,
                         java.sql.Types.INTEGER
                 );
             }
-
 
             sentencia.setBoolean(
                     5,
@@ -311,16 +292,11 @@ public class UsuarioRepositoryImpl
                     usuario.getIdUsuario()
             );
 
-
-            int filas =
-                    sentencia.executeUpdate();
-
+            int filas = sentencia.executeUpdate();
 
             return filas > 0;
 
-
         } catch (SQLException e) {
-
             System.err.println(
                     "Error al actualizar usuario: "
                     + e.getMessage()
@@ -329,7 +305,6 @@ public class UsuarioRepositoryImpl
             return false;
         }
     }
-
 
     // =========================================================
     // ELIMINACIÓN LÓGICA
@@ -345,30 +320,19 @@ public class UsuarioRepositoryImpl
                 + "fechaActualizacion = NOW() "
                 + "WHERE idUsuario = ?";
 
-
         try (
-            Connection conexion =
-                    ConexionBD.getConexion();
-
+            Connection conexion = ConexionBD.getConexion();
             PreparedStatement sentencia =
                     conexion.prepareStatement(sql)
         ) {
 
-            sentencia.setInt(
-                    1,
-                    idUsuario
-            );
+            sentencia.setInt(1, idUsuario);
 
-
-            int filas =
-                    sentencia.executeUpdate();
-
+            int filas = sentencia.executeUpdate();
 
             return filas > 0;
 
-
         } catch (SQLException e) {
-
             System.err.println(
                     "Error al eliminar usuario: "
                     + e.getMessage()
@@ -378,127 +342,74 @@ public class UsuarioRepositoryImpl
         }
     }
 
-
     // =========================================================
     // CONVERTIR RESULTSET A OBJETO USUARIO
     // =========================================================
 
-    private Usuario convertirUsuario(
-            ResultSet resultado)
+    private Usuario convertirUsuario(ResultSet resultado)
             throws SQLException {
-
 
         Usuario usuario = new Usuario();
 
-
         usuario.setIdUsuario(
-                resultado.getInt(
-                        "idUsuario"
-                )
+                resultado.getInt("idUsuario")
         );
-
 
         usuario.setNombreUsuario(
-                resultado.getString(
-                        "nombreUsuario"
-                )
+                resultado.getString("nombreUsuario")
         );
-
 
         usuario.setCorreo(
-                resultado.getString(
-                        "correo"
-                )
+                resultado.getString("correo")
         );
-
 
         usuario.setContrasenaHash(
-                resultado.getString(
-                        "contrasenaHash"
-                )
+                resultado.getString("contrasenaHash")
         );
-
 
         usuario.setIdRol(
-                resultado.getInt(
-                        "idRol"
-                )
+                resultado.getInt("idRol")
         );
 
-
-        int idPermiso =
-                resultado.getInt(
-                        "idPermiso"
-                );
-
+        int idPermiso = resultado.getInt("idPermiso");
 
         if (resultado.wasNull()) {
-
             usuario.setIdPermiso(null);
-
         } else {
-
-            usuario.setIdPermiso(
-                    idPermiso
-            );
+            usuario.setIdPermiso(idPermiso);
         }
 
-
         usuario.setUltimoAcceso(
-                resultado.getTimestamp(
-                        "ultimoAcceso"
-                )
+                resultado.getTimestamp("ultimoAcceso")
         );
-
 
         usuario.setIntentosFallidos(
-                resultado.getInt(
-                        "intentosFallidos"
-                )
+                resultado.getInt("intentosFallidos")
         );
-
 
         usuario.setBloqueado(
-                resultado.getBoolean(
-                        "bloqueado"
-                )
+                resultado.getBoolean("bloqueado")
         );
-
 
         usuario.setTokenRecuperacion(
-                resultado.getString(
-                        "tokenRecuperacion"
-                )
+                resultado.getString("tokenRecuperacion")
         );
-
 
         usuario.setFechaCreacion(
-                resultado.getTimestamp(
-                        "fechaCreacion"
-                )
+                resultado.getTimestamp("fechaCreacion")
         );
-
 
         usuario.setFechaActualizacion(
-                resultado.getTimestamp(
-                        "fechaActualizacion"
-                )
+                resultado.getTimestamp("fechaActualizacion")
         );
-
 
         usuario.setUsuarioRegistro(
-                resultado.getString(
-                        "usuarioRegistro"
-                )
+                resultado.getString("usuarioRegistro")
         );
-
 
         usuario.setEstado(
-                resultado.getBoolean(
-                        "estado"
-                )
+                resultado.getBoolean("estado")
         );
-
 
         return usuario;
     }
