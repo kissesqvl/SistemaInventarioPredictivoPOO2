@@ -1,4 +1,3 @@
-
 package repository;
 
 import util.ConexionBD;
@@ -282,11 +281,31 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "ON dp.idDatosPersonales = c.idDatosPersonales " +
                 "LEFT JOIN Venta v " +
                 "ON v.idCliente = c.idCliente " +
-                "AND v.estado = 'Registrada' " +
-                "WHERE 1 = 1 "
+                "AND v.estado = 'Registrada' "
         );
 
-        // Filtra por la fecha de registro del cliente.
+        // Filtrar las compras por el periodo seleccionado.
+        if (fechaInicio != null) {
+            sql.append("AND v.fechaVenta >= ? ");
+
+            parametros.add(
+                    Timestamp.valueOf(fechaInicio.atStartOfDay())
+            );
+        }
+
+        if (fechaFin != null) {
+            sql.append("AND v.fechaVenta < ? ");
+
+            parametros.add(
+                    Timestamp.valueOf(
+                            fechaFin.plusDays(1).atStartOfDay()
+                    )
+            );
+        }
+
+        sql.append("WHERE 1 = 1 ");
+
+        // Filtrar los clientes por su fecha de registro.
         // Los clientes sin compras también aparecen.
 
         agregarRangoFechas(
