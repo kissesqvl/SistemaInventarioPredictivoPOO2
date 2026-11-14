@@ -1,4 +1,3 @@
-
 package repository;
 
 import java.math.BigDecimal;
@@ -8,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -82,8 +82,7 @@ public class VentaRepositoryImpl implements VentaRepository {
 
                 BigDecimal total = BigDecimal.ZERO;
 
-                Set<Long> productosProcesados =
-                        new HashSet<>();
+                Set<Long> productosProcesados = new HashSet<>();
 
                 // =====================================
                 // VALIDAR PRODUCTOS Y CALCULAR TOTAL
@@ -126,8 +125,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                                 );
                             }
 
-                            String estado =
-                                    rs.getString("estado");
+                            String estado = rs.getString("estado");
 
                             if (!"Activo".equalsIgnoreCase(estado)) {
 
@@ -191,8 +189,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                         );
                     }
 
-                    try (ResultSet claves =
-                            ps.getGeneratedKeys()) {
+                    try (ResultSet claves = ps.getGeneratedKeys()) {
 
                         if (!claves.next()) {
 
@@ -355,8 +352,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                 + "ORDER BY fechaVenta DESC, idVenta DESC";
 
         try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql);
+             PreparedStatement ps = conexion.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
@@ -366,6 +362,57 @@ public class VentaRepositoryImpl implements VentaRepository {
         }
 
         return ventas;
+    }
+
+    // ==========================================
+    // CONSTRUIR FILTRO (TEXTO + RANGO DE FECHAS)
+    // ==========================================
+
+    private String construirFiltro(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            List<Object> parametros) {
+
+        List<String> condiciones = new ArrayList<>();
+
+        if (texto != null && !texto.isBlank()) {
+
+            condiciones.add(
+                    "(CAST(idVenta AS CHAR) LIKE ? "
+                    + "OR CAST(idCliente AS CHAR) LIKE ? "
+                    + "OR CAST(idUsuario AS CHAR) LIKE ? "
+                    + "OR estado LIKE ?)"
+            );
+
+            String patron = "%" + texto.trim() + "%";
+
+            for (int i = 0; i < 4; i++) {
+                parametros.add(patron);
+            }
+        }
+
+        if (fechaDesde != null) {
+            condiciones.add("fechaVenta >= ?");
+            parametros.add(
+                    Timestamp.valueOf(fechaDesde.atStartOfDay())
+            );
+        }
+
+        if (fechaHasta != null) {
+            condiciones.add("fechaVenta < ?");
+            parametros.add(
+                    Timestamp.valueOf(
+                            fechaHasta.plusDays(1).atStartOfDay()
+                    )
+            );
+        }
+
+        if (condiciones.isEmpty()) {
+            return "";
+        }
+
+        return "WHERE " + String.join(" AND ", condiciones) + " ";
     }
 
     // ==========================================
@@ -380,13 +427,15 @@ public class VentaRepositoryImpl implements VentaRepository {
 
         return buscarPaginado(
                 "",
+                null,
+                null,
                 pagina,
                 tamanioPagina
         );
     }
 
     // ==========================================
-    // BUSCAR VENTAS PAGINADAS
+    // BUSCAR VENTAS PAGINADAS (SOLO TEXTO)
     // ==========================================
 
     @Override
@@ -396,17 +445,33 @@ public class VentaRepositoryImpl implements VentaRepository {
             int tamanioPagina
     ) throws SQLException {
 
-        if (pagina < 1 || tamanioPagina < 1) {
+        return buscarPaginado(
+                texto,
+                null,
+                null,
+                pagina,
+                tamanioPagina
+        );
+    }
 
+    // ==========================================
+    // BUSCAR VENTAS PAGINADAS (TEXTO + FECHAS)
+    // ==========================================
+
+    @Override
+    public List<Venta> buscarPaginado(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            int pagina,
+            int tamanioPagina
+    ) throws SQLException {
+
+        if (pagina < 1 || tamanioPagina < 1) {
             throw new IllegalArgumentException(
                     "La pagina y su tamaño deben ser positivos."
             );
         }
-
-        String filtro =
-                texto == null ? "" : texto.trim();
-
-        boolean hayFiltro = !filtro.isEmpty();
 
         long desplazamiento =
                 ((long) pagina - 1L) * tamanioPagina;
@@ -415,51 +480,40 @@ public class VentaRepositoryImpl implements VentaRepository {
             return new ArrayList<>();
         }
 
+        List<Object> parametros = new ArrayList<>();
+
+        String filtro = construirFiltro(
+                texto,
+                fechaDesde,
+                fechaHasta,
+                parametros
+        );
+
         String sql =
                 "SELECT idVenta, idCliente, idUsuario, "
                 + "fechaVenta, total, estado "
                 + "FROM Venta "
-                + (hayFiltro
-                    ? "WHERE CAST(idVenta AS CHAR) LIKE ? "
-                    + "OR CAST(idCliente AS CHAR) LIKE ? "
-                    + "OR CAST(idUsuario AS CHAR) LIKE ? "
-                    + "OR estado LIKE ? "
-                    : "")
+                + filtro
                 + "ORDER BY fechaVenta DESC, idVenta DESC "
                 + "LIMIT ? OFFSET ?";
 
         List<Venta> ventas = new ArrayList<>();
 
         try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+             PreparedStatement ps = conexion.prepareStatement(sql)) {
 
             int indice = 1;
 
-            if (hayFiltro) {
-
-                String patron = "%" + filtro + "%";
-
-                for (int i = 0; i < 4; i++) {
-
-                    ps.setString(indice++, patron);
-                }
+            for (Object parametro : parametros) {
+                ps.setObject(indice++, parametro);
             }
 
-            ps.setInt(
-                    indice++,
-                    tamanioPagina
-            );
-
-            ps.setInt(
-                    indice,
-                    (int) desplazamiento
-            );
+            ps.setInt(indice++, tamanioPagina);
+            ps.setInt(indice, (int) desplazamiento);
 
             try (ResultSet rs = ps.executeQuery()) {
 
                 while (rs.next()) {
-
                     ventas.add(construirVenta(rs));
                 }
             }
@@ -477,39 +531,39 @@ public class VentaRepositoryImpl implements VentaRepository {
             String texto
     ) throws SQLException {
 
-        String filtro =
-                texto == null ? "" : texto.trim();
+        return contarVentas(texto, null, null);
+    }
 
-        boolean hayFiltro = !filtro.isEmpty();
+    @Override
+    public int contarVentas(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
+    ) throws SQLException {
 
-        String sql =
-                "SELECT COUNT(*) FROM Venta "
-                + (hayFiltro
-                    ? "WHERE CAST(idVenta AS CHAR) LIKE ? "
-                    + "OR CAST(idCliente AS CHAR) LIKE ? "
-                    + "OR CAST(idUsuario AS CHAR) LIKE ? "
-                    + "OR estado LIKE ?"
-                    : "");
+        List<Object> parametros = new ArrayList<>();
+
+        String filtro = construirFiltro(
+                texto,
+                fechaDesde,
+                fechaHasta,
+                parametros
+        );
+
+        String sql = "SELECT COUNT(*) FROM Venta " + filtro;
 
         try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+             PreparedStatement ps = conexion.prepareStatement(sql)) {
 
-            if (hayFiltro) {
+            int indice = 1;
 
-                String patron = "%" + filtro + "%";
-
-                for (int i = 1; i <= 4; i++) {
-
-                    ps.setString(i, patron);
-                }
+            for (Object parametro : parametros) {
+                ps.setObject(indice++, parametro);
             }
 
             try (ResultSet rs = ps.executeQuery()) {
 
-                return rs.next()
-                        ? rs.getInt(1)
-                        : 0;
+                return rs.next() ? rs.getInt(1) : 0;
             }
         }
     }
@@ -530,15 +584,13 @@ public class VentaRepositoryImpl implements VentaRepository {
                 + "WHERE idVenta = ?";
 
         try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+             PreparedStatement ps = conexion.prepareStatement(sql)) {
 
             ps.setLong(1, idVenta);
 
             try (ResultSet rs = ps.executeQuery()) {
 
                 if (rs.next()) {
-
                     return construirVenta(rs);
                 }
             }
@@ -556,8 +608,7 @@ public class VentaRepositoryImpl implements VentaRepository {
             long idVenta
     ) throws SQLException {
 
-        List<DetalleVenta> detalles =
-                new ArrayList<>();
+        List<DetalleVenta> detalles = new ArrayList<>();
 
         String sql =
                 "SELECT idDetalleVenta, idVenta, "
@@ -568,8 +619,7 @@ public class VentaRepositoryImpl implements VentaRepository {
                 + "ORDER BY idDetalleVenta";
 
         try (Connection conexion = ConexionBD.getConexion();
-             PreparedStatement ps =
-                     conexion.prepareStatement(sql)) {
+             PreparedStatement ps = conexion.prepareStatement(sql)) {
 
             ps.setLong(1, idVenta);
 
@@ -577,8 +627,7 @@ public class VentaRepositoryImpl implements VentaRepository {
 
                 while (rs.next()) {
 
-                    DetalleVenta detalle =
-                            new DetalleVenta();
+                    DetalleVenta detalle = new DetalleVenta();
 
                     detalle.setIdDetalleVenta(
                             rs.getLong("idDetalleVenta")
