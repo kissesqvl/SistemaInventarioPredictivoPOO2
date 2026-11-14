@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="java.util.Map"%>
@@ -66,6 +65,43 @@
         busqueda = "";
     }
 
+    String contexto = request.getContextPath();
+
+    String fechaDesde =
+            (String) request.getAttribute("fechaDesde");
+
+    String fechaHasta =
+            (String) request.getAttribute("fechaHasta");
+
+    if (fechaDesde == null) {
+        fechaDesde = "";
+    }
+
+    if (fechaHasta == null) {
+        fechaHasta = "";
+    }
+
+    Object paginaAtributo = request.getAttribute("paginaActual");
+    Object totalPaginasAtributo = request.getAttribute("totalPaginas");
+    Object totalRegistrosAtributo = request.getAttribute("totalRegistros");
+
+    int paginaActual = paginaAtributo instanceof Number
+            ? ((Number) paginaAtributo).intValue() : 1;
+
+    int totalPaginas = totalPaginasAtributo instanceof Number
+            ? ((Number) totalPaginasAtributo).intValue() : 1;
+
+    long totalRegistros = totalRegistrosAtributo instanceof Number
+            ? ((Number) totalRegistrosAtributo).longValue()
+            : (lista == null ? 0L : lista.size());
+
+    String urlBusqueda =
+            contexto
+            + "/MercaderiaServicioController?accion=buscar&texto="
+            + java.net.URLEncoder.encode(busqueda, "UTF-8")
+            + "&fechaDesde=" + java.net.URLEncoder.encode(fechaDesde, "UTF-8")
+            + "&fechaHasta=" + java.net.URLEncoder.encode(fechaHasta, "UTF-8");
+
     String mensajeExito =
             (String) session.getAttribute(
                     "mensajeExitoMercaderia"
@@ -107,8 +143,6 @@
             }
         }
     }
-
-    String contexto = request.getContextPath();
 %>
 
 <!DOCTYPE html>
@@ -323,6 +357,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 22px;
+            flex-wrap: wrap;
         }
 
         .search-form input {
@@ -338,6 +373,22 @@
 
         .search-form input:focus {
             border-color: #8b5cf6;
+        }
+
+        .filtro-fecha {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #c4b5fd;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .filtro-fecha input[type="date"] {
+            flex: 0 0 auto;
+            width: auto;
+            min-width: 150px;
+            color-scheme: dark;
         }
 
         .table-container {
@@ -505,6 +556,26 @@
             font-size: 12px;
         }
 
+        .paginacion {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .paginacion-info {
+            color: #9292a5;
+            font-size: 13px;
+        }
+
+        .paginas {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         @media (max-width: 1150px) {
             .stats {
                 grid-template-columns: repeat(2, 1fr);
@@ -666,7 +737,7 @@
 
             <div class="stat-card">
                 <p>Total de registros</p>
-                <h2><%= total %></h2>
+                <h2><%= totalRegistros %></h2>
             </div>
 
             <div class="stat-card">
@@ -710,6 +781,20 @@
                        name="texto"
                        placeholder="Buscar por nombre o descripción..."
                        value="<%= escapar(busqueda) %>">
+
+                <label class="filtro-fecha">
+                    Desde
+                    <input type="date"
+                           name="fechaDesde"
+                           value="<%= escapar(fechaDesde) %>">
+                </label>
+
+                <label class="filtro-fecha">
+                    Hasta
+                    <input type="date"
+                           name="fechaHasta"
+                           value="<%= escapar(fechaHasta) %>">
+                </label>
 
                 <button type="submit"
                         class="btn btn-primary">
@@ -1017,6 +1102,44 @@
                 </table>
 
             </div>
+
+            <!-- PAGINACIÓN -->
+
+            <% if (totalPaginas > 1) { %>
+
+                <div class="paginacion">
+
+                    <span class="paginacion-info">
+                        Página <strong><%= paginaActual %></strong>
+                        de <strong><%= totalPaginas %></strong>
+                        — <%= totalRegistros %> registro(s)
+                    </span>
+
+                    <div class="paginas">
+
+                        <% if (paginaActual > 1) { %>
+
+                            <a class="btn btn-secondary"
+                               href="<%= escapar(urlBusqueda) %>&amp;pagina=<%= paginaActual - 1 %>">
+                                ← Anterior
+                            </a>
+
+                        <% } %>
+
+                        <% if (paginaActual < totalPaginas) { %>
+
+                            <a class="btn btn-primary"
+                               href="<%= escapar(urlBusqueda) %>&amp;pagina=<%= paginaActual + 1 %>">
+                                Siguiente →
+                            </a>
+
+                        <% } %>
+
+                    </div>
+
+                </div>
+
+            <% } %>
 
             <p class="footer-note">
                 Los servicios no requieren control de stock.
