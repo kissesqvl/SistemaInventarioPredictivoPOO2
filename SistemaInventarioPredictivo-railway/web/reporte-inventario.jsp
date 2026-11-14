@@ -674,6 +674,12 @@
                 <span class="menu-icono">🛒</span> Ventas
             </a>
 
+            <a class="menu-item"
+               href="<%= contexto %>/MenuController?accion=boletas">
+                <span class="menu-icono">🧾</span>
+                Boletas
+            </a>
+
             <a class="menu-item activo"
                href="<%= contexto %>/MenuController?accion=reportes">
                 <span class="menu-icono">📊</span> Reportes
