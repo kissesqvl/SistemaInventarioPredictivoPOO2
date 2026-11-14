@@ -3,6 +3,7 @@ package repository;
 
 import java.util.List;
 import model.Cliente;
+import java.time.LocalDate;
 
 public interface ClienteRepository {
 
@@ -23,8 +24,16 @@ public interface ClienteRepository {
 
     List<Cliente> buscarPaginado(
             String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
             int pagina,
             int tamanioPagina
+    );
+
+    long contarClientes(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
     );
 
     // TOTAL DE REGISTROS PARA LA PAGINACION
