@@ -1,4 +1,3 @@
-
 package repository;
 
 import util.ConexionBD;
@@ -9,6 +8,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -160,14 +160,18 @@ public class ReporteRepositoryImpl implements ReporteRepository {
     }
 
     // ==========================================
-    // 6. REPORTE DE INVENTARIO
+    // 6. REPORTE DE INVENTARIO (FILTRO OPCIONAL)
     // ==========================================
 
     @Override
-    public List<Map<String, Object>> obtenerReporteInventario()
-            throws SQLException {
+    public List<Map<String, Object>> obtenerReporteInventario(
+            LocalDate fechaInicio,
+            LocalDate fechaFin
+    ) throws SQLException {
 
-        String sql =
+        List<Object> parametros = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder(
                 "SELECT " +
                 "m.idMercaderiaServicio AS idProducto, " +
                 "m.nombre AS nombreProducto, " +
@@ -185,16 +189,20 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "INNER JOIN Inventario i " +
                 "ON i.idMercaderiaServicio = m.idMercaderiaServicio " +
                 "WHERE m.tipo = 'MERCADERIA' " +
-                "AND m.estado = 'Activo' " +
-                "ORDER BY i.stockActual ASC, m.nombre ASC";
+                "AND m.estado = 'Activo' "
+        );
 
-        try (
-            Connection conexion = ConexionBD.getConexion();
-            PreparedStatement ps = conexion.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery()
-        ) {
-            return convertirResultados(rs);
-        }
+        agregarRangoFechas(
+                sql,
+                parametros,
+                "i.fechaActualizacion",
+                fechaInicio,
+                fechaFin
+        );
+
+        sql.append("ORDER BY i.stockActual ASC, m.nombre ASC");
+
+        return ejecutarConsulta(sql.toString(), parametros);
     }
 
     // ==========================================
@@ -247,15 +255,18 @@ public class ReporteRepositoryImpl implements ReporteRepository {
     }
 
     // ==========================================
-    // 8. REPORTE DE CLIENTES
-    // MANTIENE EL CORREO ELECTRONICO
+    // 8. REPORTE DE CLIENTES (FILTRO OPCIONAL)
     // ==========================================
 
     @Override
-    public List<Map<String, Object>> obtenerReporteClientes()
-            throws SQLException {
+    public List<Map<String, Object>> obtenerReporteClientes(
+            LocalDate fechaInicio,
+            LocalDate fechaFin
+    ) throws SQLException {
 
-        String sql =
+        List<Object> parametros = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder(
                 "SELECT " +
                 "c.idCliente AS idCliente, " +
                 "c.idDatosPersonales AS idDatosPersonales, " +
@@ -270,34 +281,40 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "LEFT JOIN Venta v " +
                 "ON v.idCliente = c.idCliente " +
                 "AND v.estado = 'Registrada' " +
-                "GROUP BY " +
-                "c.idCliente, " +
-                "c.idDatosPersonales, " +
-                "dp.nombres, " +
-                "dp.apellidos, " +
-                "dp.dni, " +
-                "c.correo " +
-                "ORDER BY cantidadCompras DESC, montoComprado DESC";
+                "WHERE 1 = 1 "
+        );
 
-        try (
-            Connection conexion = ConexionBD.getConexion();
-            PreparedStatement ps = conexion.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery()
-        ) {
-            return convertirResultados(rs);
-        }
+        agregarRangoFechas(
+                sql,
+                parametros,
+                "dp.fechaCreacion",
+                fechaInicio,
+                fechaFin
+        );
+
+        sql.append(
+                "GROUP BY " +
+                "c.idCliente, c.idDatosPersonales, " +
+                "dp.nombres, dp.apellidos, dp.dni, c.correo " +
+                "ORDER BY cantidadCompras DESC, montoComprado DESC"
+        );
+
+        return ejecutarConsulta(sql.toString(), parametros);
     }
 
     // ==========================================
-    // 9. REPORTE DE PROVEEDORES
-    // CORREGIDO: CORREO Y TELEFONO
+    // 9. REPORTE DE PROVEEDORES (FILTRO OPCIONAL)
     // ==========================================
 
     @Override
-    public List<Map<String, Object>> obtenerReporteProveedores()
-            throws SQLException {
+    public List<Map<String, Object>> obtenerReporteProveedores(
+            LocalDate fechaInicio,
+            LocalDate fechaFin
+    ) throws SQLException {
 
-        String sql =
+        List<Object> parametros = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder(
                 "SELECT " +
                 "p.idProveedor AS idProveedor, " +
                 "p.tipoProveedor AS tipoProveedor, " +
@@ -307,24 +324,83 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "p.nombreComercial AS nombreComercial, " +
                 "CONCAT_WS(' ', dp.nombres, dp.apellidos) AS nombre, " +
                 "dp.dni AS dni, " +
-
-                // NUEVOS CAMPOS
                 "p.correo AS correo, " +
                 "p.telefono AS telefono, " +
-
                 "p.estado AS estado, " +
                 "p.fechaCreacion AS fechaCreacion " +
                 "FROM Proveedor p " +
                 "LEFT JOIN DatosPersonales dp " +
                 "ON dp.idDatosPersonales = p.idDatosPersonales " +
-                "ORDER BY p.idProveedor DESC";
+                "WHERE 1 = 1 "
+        );
+
+        agregarRangoFechas(
+                sql,
+                parametros,
+                "p.fechaCreacion",
+                fechaInicio,
+                fechaFin
+        );
+
+        sql.append("ORDER BY p.idProveedor DESC");
+
+        return ejecutarConsulta(sql.toString(), parametros);
+    }
+
+    // ==========================================
+    // AUXILIARES DE FILTRO POR FECHAS
+    // ==========================================
+
+    private void agregarRangoFechas(
+            StringBuilder sql,
+            List<Object> parametros,
+            String columna,
+            LocalDate fechaInicio,
+            LocalDate fechaFin
+    ) {
+
+        if (fechaInicio != null) {
+            sql.append("AND ")
+                    .append(columna)
+                    .append(" >= ? ");
+
+            parametros.add(
+                    Timestamp.valueOf(fechaInicio.atStartOfDay())
+            );
+        }
+
+        if (fechaFin != null) {
+            sql.append("AND ")
+                    .append(columna)
+                    .append(" < ? ");
+
+            parametros.add(
+                    Timestamp.valueOf(
+                            fechaFin.plusDays(1).atStartOfDay()
+                    )
+            );
+        }
+    }
+
+    private List<Map<String, Object>> ejecutarConsulta(
+            String sql,
+            List<Object> parametros
+    ) throws SQLException {
 
         try (
             Connection conexion = ConexionBD.getConexion();
-            PreparedStatement ps = conexion.prepareStatement(sql);
-            ResultSet rs = ps.executeQuery()
+            PreparedStatement ps = conexion.prepareStatement(sql)
         ) {
-            return convertirResultados(rs);
+
+            int indice = 1;
+
+            for (Object parametro : parametros) {
+                ps.setObject(indice++, parametro);
+            }
+
+            try (ResultSet rs = ps.executeQuery()) {
+                return convertirResultados(rs);
+            }
         }
     }
 
