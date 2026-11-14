@@ -1,4 +1,3 @@
-
 package repository;
 
 import java.sql.Connection;
@@ -6,7 +5,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -175,6 +176,65 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     // ==========================================
+    // CONSTRUIR FILTRO (TEXTO + RANGO DE FECHAS)
+    // La fecha filtrada es la de registro del cliente
+    // (DatosPersonales.fechaCreacion)
+    // ==========================================
+
+    private String construirFiltro(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            List<Object> parametros) {
+
+        List<String> condiciones = new ArrayList<>();
+
+        if (texto != null && !texto.isBlank()) {
+
+            condiciones.add(
+                    "(d.nombres LIKE ? "
+                    + "OR d.apellidos LIKE ? "
+                    + "OR d.dni LIKE ? "
+                    + "OR c.correo LIKE ?)"
+            );
+
+            String patron = "%" + texto.trim() + "%";
+
+            for (int i = 0; i < 4; i++) {
+                parametros.add(patron);
+            }
+        }
+
+        if (fechaDesde != null) {
+
+            condiciones.add("d.fechaCreacion >= ?");
+
+            parametros.add(
+                    Timestamp.valueOf(fechaDesde.atStartOfDay())
+            );
+        }
+
+        if (fechaHasta != null) {
+
+            condiciones.add("d.fechaCreacion < ?");
+
+            parametros.add(
+                    Timestamp.valueOf(
+                            fechaHasta.plusDays(1).atStartOfDay()
+                    )
+            );
+        }
+
+        if (condiciones.isEmpty()) {
+            return "";
+        }
+
+        return "WHERE "
+                + String.join(" AND ", condiciones)
+                + " ";
+    }
+
+    // ==========================================
     // LISTAR PAGINADO
     // ==========================================
 
@@ -183,50 +243,17 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             int pagina,
             int tamanioPagina) {
 
-        List<Cliente> clientes = new ArrayList<>();
-
-        int paginaSegura = Math.max(1, pagina);
-
-        int tamanioSeguro = Math.max(
-                1,
-                Math.min(100, tamanioPagina)
+        return buscarPaginado(
+                "",
+                null,
+                null,
+                pagina,
+                tamanioPagina
         );
-
-        long offset =
-                ((long) paginaSegura - 1) * tamanioSeguro;
-
-        String sql = SELECT_BASE + """
-            ORDER BY c.idCliente DESC
-            LIMIT ? OFFSET ?
-            """;
-
-        try (
-            Connection conexion = ConexionBD.getConexion();
-            PreparedStatement ps =
-                    conexion.prepareStatement(sql)
-        ) {
-
-            ps.setInt(1, tamanioSeguro);
-            ps.setLong(2, offset);
-
-            try (ResultSet rs = ps.executeQuery()) {
-
-                while (rs.next()) {
-                    clientes.add(convertirCliente(rs));
-                }
-            }
-
-        } catch (SQLException e) {
-            throw new IllegalStateException(
-                    "Error al listar clientes paginados.", e
-            );
-        }
-
-        return clientes;
     }
 
     // ==========================================
-    // BUSCAR PAGINADO
+    // BUSCAR PAGINADO (SOLO TEXTO)
     // ==========================================
 
     @Override
@@ -235,9 +262,26 @@ public class ClienteRepositoryImpl implements ClienteRepository {
             int pagina,
             int tamanioPagina) {
 
-        if (texto == null || texto.isBlank()) {
-            return listarPaginado(pagina, tamanioPagina);
-        }
+        return buscarPaginado(
+                texto,
+                null,
+                null,
+                pagina,
+                tamanioPagina
+        );
+    }
+
+    // ==========================================
+    // BUSCAR PAGINADO (TEXTO + FECHAS)
+    // ==========================================
+
+    @Override
+    public List<Cliente> buscarPaginado(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            int pagina,
+            int tamanioPagina) {
 
         List<Cliente> clientes = new ArrayList<>();
 
@@ -251,14 +295,19 @@ public class ClienteRepositoryImpl implements ClienteRepository {
         long offset =
                 ((long) paginaSegura - 1) * tamanioSeguro;
 
-        String sql = SELECT_BASE
-                + FILTRO_BUSQUEDA
-                + """
-                    ORDER BY c.idCliente DESC
-                    LIMIT ? OFFSET ?
-                    """;
+        List<Object> parametros = new ArrayList<>();
 
-        String filtro = "%" + texto.trim() + "%";
+        String filtro = construirFiltro(
+                texto,
+                fechaDesde,
+                fechaHasta,
+                parametros
+        );
+
+        String sql = SELECT_BASE
+                + filtro
+                + "ORDER BY c.idCliente DESC "
+                + "LIMIT ? OFFSET ?";
 
         try (
             Connection conexion = ConexionBD.getConexion();
@@ -266,12 +315,14 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                     conexion.prepareStatement(sql)
         ) {
 
-            for (int i = 1; i <= 4; i++) {
-                ps.setString(i, filtro);
+            int indice = 1;
+
+            for (Object parametro : parametros) {
+                ps.setObject(indice++, parametro);
             }
 
-            ps.setInt(5, tamanioSeguro);
-            ps.setLong(6, offset);
+            ps.setInt(indice++, tamanioSeguro);
+            ps.setLong(indice, offset);
 
             try (ResultSet rs = ps.executeQuery()) {
 
@@ -290,22 +341,38 @@ public class ClienteRepositoryImpl implements ClienteRepository {
     }
 
     // ==========================================
-    // CONTAR CLIENTES
+    // CONTAR CLIENTES (SOLO TEXTO)
     // ==========================================
 
     @Override
     public long contarClientes(String texto) {
+        return contarClientes(texto, null, null);
+    }
 
-        boolean conFiltro =
-                texto != null && !texto.isBlank();
+    // ==========================================
+    // CONTAR CLIENTES (TEXTO + FECHAS)
+    // ==========================================
 
-        String sql = """
-            SELECT COUNT(*) AS total
-            FROM Cliente c
-            INNER JOIN DatosPersonales d
-                ON c.idDatosPersonales = d.idDatosPersonales
-            """
-            + (conFiltro ? FILTRO_BUSQUEDA : "");
+    @Override
+    public long contarClientes(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta) {
+
+        List<Object> parametros = new ArrayList<>();
+
+        String filtro = construirFiltro(
+                texto,
+                fechaDesde,
+                fechaHasta,
+                parametros
+        );
+
+        String sql = "SELECT COUNT(*) AS total "
+                + "FROM Cliente c "
+                + "INNER JOIN DatosPersonales d "
+                + "ON c.idDatosPersonales = d.idDatosPersonales "
+                + filtro;
 
         try (
             Connection conexion = ConexionBD.getConexion();
@@ -313,15 +380,10 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                     conexion.prepareStatement(sql)
         ) {
 
-            if (conFiltro) {
+            int indice = 1;
 
-                String filtro = "%"
-                        + texto.trim()
-                        + "%";
-
-                for (int i = 1; i <= 4; i++) {
-                    ps.setString(i, filtro);
-                }
+            for (Object parametro : parametros) {
+                ps.setObject(indice++, parametro);
             }
 
             try (ResultSet rs = ps.executeQuery()) {
