@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="java.util.ArrayList"%>
@@ -562,6 +561,10 @@
 
             <a href="<%= contexto %>/MenuController?accion=ventas">
                 Ventas
+            </a>
+
+            <a href="<%= contexto %>/MenuController?accion=boletas">
+                Boletas
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=reportes">
