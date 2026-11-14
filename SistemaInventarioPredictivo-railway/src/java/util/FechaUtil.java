@@ -18,22 +18,20 @@ public final class FechaUtil {
         try {
             return LocalDate.parse(texto.trim());
         } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException(
-                    "Las fechas ingresadas no son validas."
-            );
+            return null;
         }
     }
 
-    // Devuelve {desde, hasta}. Valida que el rango sea correcto.
+    // Devuelve {desde, hasta}. Si vienen invertidas las intercambia.
     public static LocalDate[] rango(String desdeTexto, String hastaTexto) {
 
         LocalDate desde = parsear(desdeTexto);
         LocalDate hasta = parsear(hastaTexto);
 
         if (desde != null && hasta != null && desde.isAfter(hasta)) {
-            throw new IllegalArgumentException(
-                    "La fecha inicial no puede ser posterior a la fecha final."
-            );
+            LocalDate auxiliar = desde;
+            desde = hasta;
+            hasta = auxiliar;
         }
 
         return new LocalDate[]{desde, hasta};
