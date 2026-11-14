@@ -1,7 +1,7 @@
-
 package controller;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.servlet.ServletException;
@@ -14,6 +14,7 @@ import jakarta.servlet.http.HttpSession;
 import model.Proveedor;
 import repository.ProveedorRepository;
 import repository.ProveedorRepositoryImpl;
+import util.FechaUtil;
 
 @WebServlet(
         name = "ProveedorController",
@@ -132,7 +133,7 @@ public class ProveedorController extends HttpServlet {
     }
 
     // ==========================================
-    // LISTAR Y BUSCAR CON PAGINACION
+    // LISTAR Y BUSCAR CON PAGINACION Y FECHAS
     // ==========================================
 
     private void listarProveedores(
@@ -167,9 +168,27 @@ public class ProveedorController extends HttpServlet {
             }
         }
 
+        // ==========================================
+        // OBTENER RANGO DE FECHAS
+        // ==========================================
+
+        LocalDate[] rangoFechas = FechaUtil.rango(
+                request.getParameter("fechaDesde"),
+                request.getParameter("fechaHasta")
+        );
+
+        LocalDate fechaDesde = rangoFechas[0];
+        LocalDate fechaHasta = rangoFechas[1];
+
+        // ==========================================
+        // CONTAR REGISTROS CON FILTROS
+        // ==========================================
+
         long totalRegistros =
                 proveedorRepository.contarProveedores(
-                        texto
+                        texto,
+                        fechaDesde,
+                        fechaHasta
                 );
 
         long totalPaginasLong = Math.max(
@@ -187,25 +206,22 @@ public class ProveedorController extends HttpServlet {
             pagina = totalPaginas;
         }
 
-        List<Proveedor> proveedores;
+        // ==========================================
+        // BUSCAR PROVEEDORES CON PAGINACION Y FECHAS
+        // ==========================================
 
-        if (texto.isBlank()) {
+        List<Proveedor> proveedores =
+                proveedorRepository.buscarPaginado(
+                        texto,
+                        fechaDesde,
+                        fechaHasta,
+                        pagina,
+                        TAMANIO_PAGINA
+                );
 
-            proveedores =
-                    proveedorRepository.listarPaginado(
-                            pagina,
-                            TAMANIO_PAGINA
-                    );
-
-        } else {
-
-            proveedores =
-                    proveedorRepository.buscarPaginado(
-                            texto,
-                            pagina,
-                            TAMANIO_PAGINA
-                    );
-        }
+        // ==========================================
+        // ENVIAR DATOS A LA VISTA
+        // ==========================================
 
         request.setAttribute(
                 "proveedores",
@@ -215,6 +231,16 @@ public class ProveedorController extends HttpServlet {
         request.setAttribute(
                 "textoBusqueda",
                 texto
+        );
+
+        request.setAttribute(
+                "fechaDesde",
+                FechaUtil.texto(fechaDesde)
+        );
+
+        request.setAttribute(
+                "fechaHasta",
+                FechaUtil.texto(fechaHasta)
         );
 
         request.setAttribute(
@@ -403,7 +429,7 @@ public class ProveedorController extends HttpServlet {
             proveedor.setTipoProveedor(tipoProveedor);
 
             // ==========================================
-            // NUEVO: CORREO Y TELEFONO
+            // CORREO Y TELEFONO
             // ==========================================
 
             String correo = limpiar(
