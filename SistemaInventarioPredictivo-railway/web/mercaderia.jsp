@@ -680,6 +680,11 @@
                 Ventas
             </a>
 
+            <a href="<%= contexto %>/MenuController?accion=boletas">
+                <span>🧾</span>
+                Boletas
+            </a>
+
             <a href="<%= contexto %>/MenuController?accion=reportes">
                 Reportes
             </a>
