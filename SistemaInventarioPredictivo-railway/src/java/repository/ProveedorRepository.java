@@ -1,6 +1,6 @@
-
 package repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import model.Proveedor;
 
@@ -16,8 +16,6 @@ public interface ProveedorRepository {
     // BUSCAR PROVEEDORES
     // ==========================================
 
-    // Buscar por nombre, apellido, DNI,
-    // RUC, razon social o nombre comercial
     List<Proveedor> buscar(String texto);
 
     // ==========================================
@@ -51,21 +49,30 @@ public interface ProveedorRepository {
     // PAGINACION
     // ==========================================
 
-    // Consultar solamente los registros
-    // correspondientes a una pagina
     List<Proveedor> listarPaginado(
             int pagina,
             int tamanioPagina
     );
 
-    // Buscar proveedores utilizando paginacion
+    // ==========================================
+    // BUSCAR CON FILTRO DE FECHAS
+    // ==========================================
+
     List<Proveedor> buscarPaginado(
             String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
             int pagina,
             int tamanioPagina
     );
 
-    // Contar los proveedores encontrados
-    // para calcular el total de paginas
-    long contarProveedores(String texto);
+    // ==========================================
+    // CONTAR CON FILTRO DE FECHAS
+    // ==========================================
+
+    long contarProveedores(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
+    );
 }
