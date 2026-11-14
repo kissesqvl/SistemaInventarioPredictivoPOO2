@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
 <%!
@@ -437,6 +436,12 @@
                href="<%= contexto %>/MenuController?accion=ventas">
                 <span class="menu-icono">🛒</span>
                 Ventas
+            </a>
+
+            <a class="menu-item"
+               href="<%= contexto %>/MenuController?accion=boletas">
+                <span class="menu-icono">🧾</span>
+                Boletas
             </a>
 
             <a class="menu-item"
