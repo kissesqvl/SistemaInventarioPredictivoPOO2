@@ -946,6 +946,18 @@
     </a>
 
 
+    <a href="<%= request.getContextPath() %>/MenuController?accion=boletas"
+       class="menu-item">
+
+        <span class="menu-icon">
+            🧾
+        </span>
+
+        Boletas
+
+    </a>
+
+
     <a href="<%= request.getContextPath() %>/MenuController?accion=reportes"
        class="menu-item">
 
