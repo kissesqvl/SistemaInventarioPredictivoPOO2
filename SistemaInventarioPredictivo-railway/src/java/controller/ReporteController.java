@@ -1,9 +1,9 @@
+
 package controller;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Map;
 
@@ -192,12 +192,12 @@ public class ReporteController extends HttpServlet {
 
         request.setAttribute(
                 "fechaInicio",
-                fechas[0].toString()
+                FechaUtil.texto(fechas[0])
         );
 
         request.setAttribute(
                 "fechaFin",
-                fechas[1].toString()
+                FechaUtil.texto(fechas[1])
         );
 
         request.getRequestDispatcher(
@@ -263,12 +263,12 @@ public class ReporteController extends HttpServlet {
 
         request.setAttribute(
                 "fechaInicio",
-                fechas[0].toString()
+                FechaUtil.texto(fechas[0])
         );
 
         request.setAttribute(
                 "fechaFin",
-                fechas[1].toString()
+                FechaUtil.texto(fechas[1])
         );
 
         request.getRequestDispatcher(
@@ -368,33 +368,21 @@ public class ReporteController extends HttpServlet {
 
         LocalDate fechaFin = hoy;
 
-        try {
+        if (inicioTexto != null && !inicioTexto.isBlank()) {
+            fechaInicio = FechaUtil.parsear(inicioTexto);
+        }
 
-            if (inicioTexto != null
-                    && !inicioTexto.isBlank()) {
+        if (finTexto != null && !finTexto.isBlank()) {
+            fechaFin = FechaUtil.parsear(finTexto);
+        }
 
-                fechaInicio = LocalDate.parse(
-                        inicioTexto
-                );
-            }
-
-            if (finTexto != null
-                    && !finTexto.isBlank()) {
-
-                fechaFin = LocalDate.parse(
-                        finTexto
-                );
-            }
-
-        } catch (DateTimeParseException e) {
-
+        if (fechaInicio == null || fechaFin == null) {
             throw new IllegalArgumentException(
                     "Las fechas ingresadas no son validas."
             );
         }
 
         if (fechaInicio.isAfter(fechaFin)) {
-
             throw new IllegalArgumentException(
                     "La fecha inicial no puede ser "
                     + "posterior a la fecha final."
