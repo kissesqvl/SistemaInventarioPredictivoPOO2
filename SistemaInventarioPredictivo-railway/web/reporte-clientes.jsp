@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="java.util.Map"%>
@@ -80,6 +79,12 @@
     }
 
     String contexto = request.getContextPath();
+
+    String fechaInicio = (String) request.getAttribute("fechaInicio");
+    String fechaFin = (String) request.getAttribute("fechaFin");
+
+    if (fechaInicio == null) fechaInicio = "";
+    if (fechaFin == null) fechaFin = "";
 
     String usuario = String.valueOf(
             session.getAttribute("usuario")
@@ -445,6 +450,48 @@
             margin-bottom: 20px;
         }
 
+        /* FILTRO DE FECHAS */
+
+        .filtros {
+            display: flex;
+            align-items: flex-end;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .campo {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .campo label {
+            color: #c4b5fd;
+            font-size: 13px;
+        }
+
+        .campo input {
+            padding: 13px 15px;
+            border: 1px solid #39314d;
+            border-radius: 10px;
+            outline: none;
+            background: #100f1b;
+            color: #ffffff;
+            font-size: 14px;
+            color-scheme: dark;
+        }
+
+        .campo input:focus {
+            border-color: #8b5cf6;
+        }
+
+        .filtros .boton-primario {
+            background: #7c3aed;
+            color: #ffffff;
+        }
+
         .tabla-contenedor {
             overflow-x: auto;
         }
@@ -648,6 +695,39 @@
                     ← Volver a Reportes
                 </a>
             </div>
+
+            <!-- FILTRO DE FECHAS -->
+            <section class="tarjeta">
+                <h3>Filtrar por fecha</h3>
+
+                <form class="filtros"
+                      action="<%= contexto %>/ReporteController"
+                      method="get">
+
+                    <input type="hidden" name="accion" value="clientes">
+
+                    <div class="campo">
+                        <label for="fechaInicio">Desde</label>
+                        <input type="date" id="fechaInicio" name="fechaInicio"
+                               value="<%= escapar(fechaInicio) %>">
+                    </div>
+
+                    <div class="campo">
+                        <label for="fechaFin">Hasta</label>
+                        <input type="date" id="fechaFin" name="fechaFin"
+                               value="<%= escapar(fechaFin) %>">
+                    </div>
+
+                    <button type="submit" class="boton boton-primario">
+                        🔎 Consultar
+                    </button>
+
+                    <a class="boton boton-secundario"
+                       href="<%= contexto %>/ReporteController?accion=clientes">
+                        Limpiar
+                    </a>
+                </form>
+            </section>
 
             <!-- INDICADORES -->
             <section class="indicadores">
