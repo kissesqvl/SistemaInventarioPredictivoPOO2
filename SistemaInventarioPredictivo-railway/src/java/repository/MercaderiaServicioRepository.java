@@ -1,7 +1,8 @@
-
 package repository;
 
+import java.time.LocalDate;
 import java.util.List;
+
 import model.MercaderiaServicio;
 
 public interface MercaderiaServicioRepository {
@@ -70,4 +71,25 @@ public interface MercaderiaServicioRepository {
     // Contar registros para calcular el total de paginas
     long contarMercaderia(String texto);
 
+    // ==========================================
+    // BUSCAR CON FILTRO DE FECHAS
+    // ==========================================
+
+    List<MercaderiaServicio> buscarPaginado(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta,
+            int pagina,
+            int tamanioPagina
+    );
+
+    // ==========================================
+    // CONTAR CON FILTRO DE FECHAS
+    // ==========================================
+
+    long contarMercaderia(
+            String texto,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
+    );
 }
