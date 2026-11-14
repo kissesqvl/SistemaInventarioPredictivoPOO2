@@ -1013,7 +1013,11 @@
 
             </a>
 
-
+<a href="<%= request.getContextPath() %>/MenuController?accion=boletas"
+   class="menu-item">
+    <span class="menu-icono">🧾</span>
+    Boletas
+</a>
             <!-- REPORTES -->
 
             <a
