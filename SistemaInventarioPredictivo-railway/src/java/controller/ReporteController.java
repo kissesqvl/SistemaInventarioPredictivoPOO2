@@ -1,4 +1,3 @@
-
 package controller;
 
 import java.io.IOException;
@@ -17,6 +16,7 @@ import jakarta.servlet.http.HttpSession;
 
 import repository.ReporteRepository;
 import repository.ReporteRepositoryImpl;
+import util.FechaUtil;
 
 @WebServlet("/ReporteController")
 public class ReporteController extends HttpServlet {
@@ -214,12 +214,24 @@ public class ReporteController extends HttpServlet {
             HttpServletResponse response)
             throws SQLException, ServletException, IOException {
 
-        List<Map<String, Object>> inventario =
-                reporteRepo.obtenerReporteInventario();
+        LocalDate[] fechas = obtenerFechasOpcionales(request);
 
         request.setAttribute(
                 "listaReporteInventario",
-                inventario
+                reporteRepo.obtenerReporteInventario(
+                        fechas[0],
+                        fechas[1]
+                )
+        );
+
+        request.setAttribute(
+                "fechaInicio",
+                FechaUtil.texto(fechas[0])
+        );
+
+        request.setAttribute(
+                "fechaFin",
+                FechaUtil.texto(fechas[1])
         );
 
         request.getRequestDispatcher(
@@ -273,12 +285,24 @@ public class ReporteController extends HttpServlet {
             HttpServletResponse response)
             throws SQLException, ServletException, IOException {
 
-        List<Map<String, Object>> clientes =
-                reporteRepo.obtenerReporteClientes();
+        LocalDate[] fechas = obtenerFechasOpcionales(request);
 
         request.setAttribute(
                 "listaReporteClientes",
-                clientes
+                reporteRepo.obtenerReporteClientes(
+                        fechas[0],
+                        fechas[1]
+                )
+        );
+
+        request.setAttribute(
+                "fechaInicio",
+                FechaUtil.texto(fechas[0])
+        );
+
+        request.setAttribute(
+                "fechaFin",
+                FechaUtil.texto(fechas[1])
         );
 
         request.getRequestDispatcher(
@@ -295,12 +319,24 @@ public class ReporteController extends HttpServlet {
             HttpServletResponse response)
             throws SQLException, ServletException, IOException {
 
-        List<Map<String, Object>> proveedores =
-                reporteRepo.obtenerReporteProveedores();
+        LocalDate[] fechas = obtenerFechasOpcionales(request);
 
         request.setAttribute(
                 "listaReporteProveedores",
-                proveedores
+                reporteRepo.obtenerReporteProveedores(
+                        fechas[0],
+                        fechas[1]
+                )
+        );
+
+        request.setAttribute(
+                "fechaInicio",
+                FechaUtil.texto(fechas[0])
+        );
+
+        request.setAttribute(
+                "fechaFin",
+                FechaUtil.texto(fechas[1])
         );
 
         request.getRequestDispatcher(
@@ -310,6 +346,7 @@ public class ReporteController extends HttpServlet {
 
     // ==========================================
     // OBTENER Y VALIDAR RANGO DE FECHAS
+    // PARA VENTAS Y PRODUCTOS MÁS VENDIDOS
     // ==========================================
 
     private LocalDate[] obtenerFechas(
@@ -368,5 +405,19 @@ public class ReporteController extends HttpServlet {
             fechaInicio,
             fechaFin
         };
+    }
+
+    // ==========================================
+    // OBTENER RANGO OPCIONAL
+    // PARA INVENTARIO, CLIENTES Y PROVEEDORES
+    // ==========================================
+
+    private LocalDate[] obtenerFechasOpcionales(
+            HttpServletRequest request) {
+
+        return FechaUtil.rango(
+                request.getParameter("fechaInicio"),
+                request.getParameter("fechaFin")
+        );
     }
 }
