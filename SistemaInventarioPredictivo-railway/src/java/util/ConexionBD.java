@@ -23,13 +23,27 @@ public class ConexionBD {
         String usuario = System.getenv("MYSQLUSER");
         String contrasena = System.getenv("MYSQLPASSWORD");
 
+        if (host == null || host.isBlank()
+                || puerto == null || puerto.isBlank()
+                || baseDatos == null || baseDatos.isBlank()
+                || usuario == null || usuario.isBlank()
+                || contrasena == null || contrasena.isBlank()) {
+
+            throw new SQLException(
+                    "Faltan variables de entorno para conectar con MySQL."
+            );
+        }
+
         String url = "jdbc:mysql://" + host + ":" + puerto + "/" + baseDatos
-                + "?useSSL=false&allowPublicKeyRetrieval=true"
+                + "?useSSL=false"
+                + "&allowPublicKeyRetrieval=true"
                 + "&serverTimezone=UTC";
 
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
+
         } catch (ClassNotFoundException e) {
+
             throw new SQLException(
                     "No se pudo cargar el driver JDBC de MySQL.",
                     e
