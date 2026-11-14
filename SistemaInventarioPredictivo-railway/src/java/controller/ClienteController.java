@@ -2,6 +2,7 @@
 package controller;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.servlet.ServletException;
@@ -14,6 +15,7 @@ import jakarta.servlet.http.HttpSession;
 import model.Cliente;
 import repository.ClienteRepository;
 import repository.ClienteRepositoryImpl;
+import util.FechaUtil;
 
 @WebServlet(
         name = "ClienteController",
@@ -247,8 +249,17 @@ public class ClienteController extends HttpServlet {
             pagina = 1;
         }
 
+        LocalDate[] rangoFechas = FechaUtil.rango(
+                request.getParameter("fechaDesde"),
+                request.getParameter("fechaHasta")
+        );
+
+        LocalDate fechaDesde = rangoFechas[0];
+        LocalDate fechaHasta = rangoFechas[1];
+
         long totalRegistros =
-                clienteRepository.contarClientes(texto);
+                clienteRepository.contarClientes(
+                        texto, fechaDesde, fechaHasta);
 
         long totalPaginasCalculado =
                 (totalRegistros + TAMANIO_PAGINA - 1)
@@ -256,38 +267,26 @@ public class ClienteController extends HttpServlet {
 
         int totalPaginas = (int) Math.max(
                 1L,
-                Math.min(
-                        Integer.MAX_VALUE,
-                        totalPaginasCalculado
-                )
+                Math.min(Integer.MAX_VALUE, totalPaginasCalculado)
         );
 
         if (pagina > totalPaginas) {
             pagina = totalPaginas;
         }
 
-        List<Cliente> clientes;
-
-        if (texto.isBlank()) {
-
-            clientes =
-                    clienteRepository.listarPaginado(
-                            pagina,
-                            TAMANIO_PAGINA
-                    );
-
-        } else {
-
-            clientes =
-                    clienteRepository.buscarPaginado(
-                            texto,
-                            pagina,
-                            TAMANIO_PAGINA
-                    );
-        }
+        List<Cliente> clientes =
+                clienteRepository.buscarPaginado(
+                        texto,
+                        fechaDesde,
+                        fechaHasta,
+                        pagina,
+                        TAMANIO_PAGINA
+                );
 
         request.setAttribute("clientes", clientes);
         request.setAttribute("textoBusqueda", texto);
+        request.setAttribute("fechaDesde", FechaUtil.texto(fechaDesde));
+        request.setAttribute("fechaHasta", FechaUtil.texto(fechaHasta));
         request.setAttribute("paginaActual", pagina);
         request.setAttribute("totalPaginas", totalPaginas);
         request.setAttribute("totalRegistros", totalRegistros);
