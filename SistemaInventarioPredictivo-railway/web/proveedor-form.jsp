@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="model.Proveedor"%>
 
@@ -491,6 +490,12 @@
                class="menu-item">
                 <span class="menu-icono">🛒</span>
                 Ventas
+            </a>
+
+            <a class="menu-item"
+               href="<%= contexto %>/MenuController?accion=boletas">
+                <span class="menu-icono">🧾</span>
+                Boletas
             </a>
 
             <a href="<%= contexto %>/MenuController?accion=reportes"
