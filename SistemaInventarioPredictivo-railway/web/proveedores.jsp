@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="java.net.URLEncoder"%>
@@ -52,6 +51,20 @@
         textoBusqueda = "";
     }
 
+    String fechaDesde =
+            (String) request.getAttribute("fechaDesde");
+
+    String fechaHasta =
+            (String) request.getAttribute("fechaHasta");
+
+    if (fechaDesde == null) {
+        fechaDesde = "";
+    }
+
+    if (fechaHasta == null) {
+        fechaHasta = "";
+    }
+
     Number atributoPagina =
             (Number) request.getAttribute("paginaActual");
 
@@ -102,7 +115,9 @@
     String urlBusqueda =
             contexto
             + "/ProveedorController?accion=buscar&texto="
-            + busquedaURL;
+            + busquedaURL
+            + "&fechaDesde=" + URLEncoder.encode(fechaDesde, "UTF-8")
+            + "&fechaHasta=" + URLEncoder.encode(fechaHasta, "UTF-8");
 %>
 
 <!DOCTYPE html>
@@ -391,6 +406,24 @@
 
         .buscador input:focus {
             border-color: #8b5cf6;
+        }
+
+        /* FILTRO DE FECHAS */
+
+        .filtro-fecha {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #c4b5fd;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .filtro-fecha input[type="date"] {
+            flex: 0 0 auto;
+            width: auto;
+            min-width: 150px;
+            color-scheme: dark;
         }
 
         .resultados-info {
@@ -737,6 +770,20 @@
                            name="texto"
                            placeholder="Nombre, apellido, DNI, RUC o razón social"
                            value="<%= escapar(textoBusqueda) %>">
+
+                    <label class="filtro-fecha">
+                        Desde
+                        <input type="date"
+                               name="fechaDesde"
+                               value="<%= escapar(fechaDesde) %>">
+                    </label>
+
+                    <label class="filtro-fecha">
+                        Hasta
+                        <input type="date"
+                               name="fechaHasta"
+                               value="<%= escapar(fechaHasta) %>">
+                    </label>
 
                     <button type="submit"
                             class="btn btn-primary">
