@@ -1,8 +1,8 @@
-
 package controller;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,6 +24,8 @@ import repository.MercaderiaServicioRepository;
 import repository.MercaderiaServicioRepositoryImpl;
 import repository.VentaRepository;
 import repository.VentaRepositoryImpl;
+
+import util.FechaUtil;
 
 @WebServlet("/VentaController")
 public class VentaController extends HttpServlet {
@@ -245,8 +247,20 @@ public class VentaController extends HttpServlet {
             pagina = 1;
         }
 
+        LocalDate[] rangoFechas = FechaUtil.rango(
+                request.getParameter("fechaDesde"),
+                request.getParameter("fechaHasta")
+        );
+
+        LocalDate fechaDesde = rangoFechas[0];
+        LocalDate fechaHasta = rangoFechas[1];
+
         int totalRegistros =
-                ventaRepo.contarVentas(texto);
+                ventaRepo.contarVentas(
+                        texto,
+                        fechaDesde,
+                        fechaHasta
+                );
 
         int totalPaginas =
                 (int) Math.ceil(
@@ -258,26 +272,19 @@ public class VentaController extends HttpServlet {
             pagina = totalPaginas;
         }
 
-        List<Venta> ventas;
-
-        if (texto.isEmpty()) {
-
-            ventas = ventaRepo.listarPaginado(
-                    pagina,
-                    TAMANIO_PAGINA
-            );
-
-        } else {
-
-            ventas = ventaRepo.buscarPaginado(
-                    texto,
-                    pagina,
-                    TAMANIO_PAGINA
-            );
-        }
+        List<Venta> ventas =
+                ventaRepo.buscarPaginado(
+                        texto,
+                        fechaDesde,
+                        fechaHasta,
+                        pagina,
+                        TAMANIO_PAGINA
+                );
 
         request.setAttribute("listaVentas", ventas);
         request.setAttribute("textoBusqueda", texto);
+        request.setAttribute("fechaDesde", FechaUtil.texto(fechaDesde));
+        request.setAttribute("fechaHasta", FechaUtil.texto(fechaHasta));
         request.setAttribute("paginaActual", pagina);
         request.setAttribute("totalPaginas", totalPaginas);
         request.setAttribute("totalRegistros", totalRegistros);
