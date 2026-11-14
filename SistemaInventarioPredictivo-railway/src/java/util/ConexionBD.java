@@ -19,7 +19,13 @@ public class ConexionBD {
 
         String host = System.getenv("MYSQLHOST");
         String puerto = System.getenv("MYSQLPORT");
-        String baseDatos = System.getenv("MYSQL_DATABASE");
+
+        String baseDatos = System.getenv("MYSQLDATABASE");
+
+        if (baseDatos == null || baseDatos.isBlank()) {
+            baseDatos = System.getenv("MYSQL_DATABASE");
+        }
+
         String usuario = System.getenv("MYSQLUSER");
         String contrasena = System.getenv("MYSQLPASSWORD");
 
