@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="jakarta.servlet.http.HttpSession"%>
 
@@ -762,6 +761,16 @@
 
                 <span class="menu-icono">🛒</span>
                 Ventas
+
+            </a>
+
+            <!-- BOLETAS -->
+
+            <a href="<%= contexto %>/MenuController?accion=boletas"
+               class="menu-item">
+
+                <span class="menu-icono">🧾</span>
+                Boletas
 
             </a>
 
