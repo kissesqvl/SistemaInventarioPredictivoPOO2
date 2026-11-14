@@ -8,7 +8,8 @@ public final class FechaUtil {
     private FechaUtil() {
     }
 
-    // Convierte yyyy-MM-dd en LocalDate (o null si esta vacio/invalido)
+    // Convierte una fecha yyyy-MM-dd en LocalDate.
+    // Si esta vacia, devuelve null.
     public static LocalDate parsear(String texto) {
 
         if (texto == null || texto.isBlank()) {
@@ -17,27 +18,46 @@ public final class FechaUtil {
 
         try {
             return LocalDate.parse(texto.trim());
+
         } catch (DateTimeParseException e) {
-            return null;
+
+            throw new IllegalArgumentException(
+                    "La fecha ingresada no tiene un formato valido."
+            );
         }
     }
 
-    // Devuelve {desde, hasta}. Si vienen invertidas las intercambia.
-    public static LocalDate[] rango(String desdeTexto, String hastaTexto) {
+    // Obtiene el rango de fechas y valida que sea correcto.
+    public static LocalDate[] rango(
+            String desdeTexto,
+            String hastaTexto) {
 
         LocalDate desde = parsear(desdeTexto);
         LocalDate hasta = parsear(hastaTexto);
 
-        if (desde != null && hasta != null && desde.isAfter(hasta)) {
-            LocalDate auxiliar = desde;
-            desde = hasta;
-            hasta = auxiliar;
+        if (desde != null
+                && hasta != null
+                && desde.isAfter(hasta)) {
+
+            throw new IllegalArgumentException(
+                    "La fecha inicial no puede ser posterior "
+                    + "a la fecha final."
+            );
         }
 
-        return new LocalDate[]{desde, hasta};
+        return new LocalDate[]{
+            desde,
+            hasta
+        };
     }
 
+    // Convierte LocalDate en texto para los JSP.
     public static String texto(LocalDate fecha) {
-        return fecha == null ? "" : fecha.toString();
+
+        if (fecha == null) {
+            return "";
+        }
+
+        return fecha.toString();
     }
 }
