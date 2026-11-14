@@ -128,6 +128,18 @@
             break;
 
 
+        case "boletas":
+
+            titulo = "Boletas";
+
+            descripcion =
+                "Consulta y administración de boletas de venta emitidas.";
+
+            icono = "🧾";
+
+            break;
+
+
         case "reportes":
 
             titulo = "Reportes";
@@ -913,6 +925,21 @@
                 </span>
 
                 Ventas
+
+            </a>
+
+
+            <!-- BOLETAS -->
+
+            <a
+                href="<%= request.getContextPath() %>/MenuController?accion=boletas"
+                class="menu-item <%= "boletas".equals(modulo) ? "activo" : "" %>">
+
+                <span class="menu-icono">
+                    🧾
+                </span>
+
+                Boletas
 
             </a>
 
