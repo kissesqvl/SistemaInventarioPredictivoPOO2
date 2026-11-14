@@ -1,5 +1,6 @@
 package repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import model.Usuario;
 
@@ -7,6 +8,9 @@ public interface UsuarioRepository {
 
     // Listar todos los usuarios
     List<Usuario> listar();
+
+    // Listar usuarios filtrados por fecha
+    List<Usuario> listar(LocalDate fechaDesde, LocalDate fechaHasta);
 
     // Buscar un usuario por su ID
     Usuario buscarPorId(int idUsuario);
