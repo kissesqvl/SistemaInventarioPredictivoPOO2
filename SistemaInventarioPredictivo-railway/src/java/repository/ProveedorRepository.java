@@ -55,6 +55,16 @@ public interface ProveedorRepository {
     );
 
     // ==========================================
+    // BUSCAR PAGINADO (SOLO TEXTO)
+    // ==========================================
+
+    List<Proveedor> buscarPaginado(
+            String texto,
+            int pagina,
+            int tamanioPagina
+    );
+
+    // ==========================================
     // BUSCAR CON FILTRO DE FECHAS
     // ==========================================
 
@@ -65,6 +75,12 @@ public interface ProveedorRepository {
             int pagina,
             int tamanioPagina
     );
+
+    // ==========================================
+    // CONTAR PROVEEDORES (SOLO TEXTO)
+    // ==========================================
+
+    long contarProveedores(String texto);
 
     // ==========================================
     // CONTAR CON FILTRO DE FECHAS
