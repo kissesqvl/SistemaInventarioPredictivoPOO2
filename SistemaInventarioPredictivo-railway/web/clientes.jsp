@@ -859,6 +859,7 @@
                                 <th>Apellidos</th>
                                 <th>DNI</th>
                                 <th>Estado</th>
+                                <th>Creado</th> <!-- NUEVO -->
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -869,6 +870,14 @@
                                 && !clientes.isEmpty()) {
 
                             for (Cliente cliente : clientes) {
+
+                                // NUEVO: fecha de creación (yyyy-MM-dd HH:mm:ss)
+                                String fechaCreacion =
+                                        cliente.getFechaCreacion() != null
+                                        ? cliente.getFechaCreacion()
+                                                .toString()
+                                                .substring(0, 19)
+                                        : "-";
                         %>
 
                             <tr>
@@ -911,6 +920,11 @@
 
                                     </span>
 
+                                </td>
+
+                                <!-- NUEVO: columna Creado -->
+                                <td style="white-space: nowrap;">
+                                    <%= escapar(fechaCreacion) %>
                                 </td>
 
                                 <td>
@@ -958,7 +972,7 @@
                            } else { %>
 
                             <tr>
-                                <td colspan="6"
+                                <td colspan="7"
                                     class="vacio">
 
                                     No se encontraron clientes
