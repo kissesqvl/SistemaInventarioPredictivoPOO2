@@ -3,6 +3,9 @@
 <%@page import="java.util.Map"%>
 <%@page import="java.util.ArrayList"%>
 <%@page import="java.util.Locale"%>
+<%@page import="java.time.LocalDateTime"%> <%-- NUEVO --%>
+<%@page import="java.time.format.DateTimeFormatter"%> <%-- NUEVO --%>
+<%@page import="java.sql.Timestamp"%> <%-- NUEVO --%>
 
 <%!
     private String escapar(Object valor) {
@@ -46,6 +49,28 @@
         Object valor = obtenerValor(fila, nombres);
 
         return valor == null ? "-" : valor.toString();
+    }
+
+    // NUEVO: formato de fecha igual al de Boletas
+    private String formatearFechaHora(Object valor) {
+        if (valor == null) {
+            return "-";
+        }
+
+        DateTimeFormatter formato =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        if (valor instanceof Timestamp) {
+            return ((Timestamp) valor)
+                    .toLocalDateTime()
+                    .format(formato);
+        }
+
+        if (valor instanceof LocalDateTime) {
+            return ((LocalDateTime) valor).format(formato);
+        }
+
+        return valor.toString();
     }
 %>
 
@@ -967,6 +992,7 @@
                                 <th>Correo</th>
                                 <th>Teléfono</th>
                                 <th>Estado</th>
+                                <th>Creado</th> <!-- NUEVO -->
                             </tr>
                         </thead>
 
@@ -975,7 +1001,7 @@
                             <% if (proveedores.isEmpty()) { %>
 
                                 <tr>
-                                    <td colspan="6" class="vacio">
+                                    <td colspan="7" class="vacio">
                                         No se encontraron proveedores
                                         registrados.
                                     </td>
@@ -1047,6 +1073,14 @@
                                         claseEstado = "estado-inactivo";
                                         textoEstado = "Inactivo";
                                     }
+
+                                    // NUEVO: fecha de creación del proveedor
+                                    String fechaCreacion = formatearFechaHora(
+                                            obtenerValor(
+                                                    proveedor,
+                                                    "fechaCreacion"
+                                            )
+                                    );
                                 %>
 
                                     <tr class="fila-proveedor">
@@ -1075,6 +1109,11 @@
                                             <span class="estado <%= claseEstado %>">
                                                 <%= escapar(textoEstado) %>
                                             </span>
+                                        </td>
+
+                                        <!-- NUEVO -->
+                                        <td>
+                                            <%= escapar(fechaCreacion) %>
                                         </td>
 
                                     </tr>
