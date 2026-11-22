@@ -1,4 +1,3 @@
-
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <%@page import="java.util.List"%>
 <%@page import="java.util.Map"%>
@@ -610,6 +609,13 @@
             <a class="menu-item"
                href="<%= contexto %>/MenuController?accion=ventas">
                 <span class="menu-icono">🛒</span> Ventas
+            </a>
+
+            <!-- NUEVO: enlace a Boletas -->
+            <a class="menu-item"
+               href="<%= contexto %>/MenuController?accion=boletas">
+                <span class="menu-icono">🧾</span>
+                Boletas
             </a>
 
             <a class="menu-item activo"
