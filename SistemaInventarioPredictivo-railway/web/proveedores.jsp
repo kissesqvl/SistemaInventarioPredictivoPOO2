@@ -2,6 +2,7 @@
 <%@page import="java.util.List"%>
 <%@page import="java.net.URLEncoder"%>
 <%@page import="java.nio.charset.StandardCharsets"%>
+<%@page import="java.time.format.DateTimeFormatter"%> <%-- NUEVO --%>
 <%@page import="model.Proveedor"%>
 
 <%!
@@ -13,6 +14,10 @@
                     .replace("\"", "&quot;")
                     .replace("'", "&#39;");
     }
+
+    // NUEVO: formato de fecha igual al de Boletas
+    private static final DateTimeFormatter FORMATO_FECHA =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 %>
 
 <%
@@ -449,7 +454,7 @@
 
         table {
             width: 100%;
-            min-width: 850px;
+            min-width: 1000px; /* NUEVO: antes 850px, por la columna extra */
             border-collapse: collapse;
             text-align: left;
         }
@@ -836,6 +841,7 @@
                                 <th>Proveedor</th>
                                 <th>Documento</th>
                                 <th>Estado</th>
+                                <th>Creado</th> <!-- NUEVO -->
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -848,7 +854,7 @@
                         %>
 
                             <tr>
-                                <td colspan="6" class="vacio">
+                                <td colspan="7" class="vacio">
                                     No se encontraron proveedores.
                                 </td>
                             </tr>
@@ -881,6 +887,13 @@
                                     String documento = natural
                                             ? proveedor.getDni()
                                             : proveedor.getRuc();
+
+                                    // NUEVO: fecha de creación (yyyy-MM-dd HH:mm:ss)
+                                    String fechaCreacion =
+                                            proveedor.getFechaCreacion() != null
+                                            ? proveedor.getFechaCreacion()
+                                                    .format(FORMATO_FECHA)
+                                            : "-";
                         %>
 
                             <tr>
@@ -913,6 +926,11 @@
                                                 ? "Activo"
                                                 : "Inactivo" %>
                                     </span>
+                                </td>
+
+                                <!-- NUEVO: columna Creado -->
+                                <td style="white-space: nowrap;">
+                                    <%= escapar(fechaCreacion) %>
                                 </td>
 
                                 <td>
