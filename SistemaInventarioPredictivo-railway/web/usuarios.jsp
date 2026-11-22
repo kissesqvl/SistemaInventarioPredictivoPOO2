@@ -459,7 +459,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 850px;
+            min-width: 1000px; /* NUEVO: antes 850px, por la columna extra */
         }
 
         th {
@@ -922,6 +922,7 @@
                                 <th>Correo</th>
                                 <th>Rol</th>
                                 <th>Estado</th>
+                                <th>Creado</th> <!-- NUEVO -->
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -947,6 +948,14 @@
 
                             String rolUsuario =
                                     obtenerNombreRol(usuario.getIdRol());
+
+                            // NUEVO: fecha de creación (yyyy-MM-dd HH:mm:ss)
+                            String fechaCreacion =
+                                    usuario.getFechaCreacion() != null
+                                    ? usuario.getFechaCreacion()
+                                            .toString()
+                                            .substring(0, 19)
+                                    : "-";
                         %>
 
                             <tr>
@@ -1003,6 +1012,11 @@
 
                                     <% } %>
 
+                                </td>
+
+                                <!-- NUEVO: columna Creado -->
+                                <td style="white-space: nowrap;">
+                                    <%= escapar(fechaCreacion) %>
                                 </td>
 
                                 <td>
