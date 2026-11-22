@@ -1,5 +1,6 @@
-
 package model;
+
+import java.sql.Timestamp; // NUEVO
 
 public class Cliente {
 
@@ -12,6 +13,7 @@ public class Cliente {
     private Integer idSexo;
     private Integer idEstadoCivil;
     private String estado;
+    private Timestamp fechaCreacion; // NUEVO
 
     public Cliente() {
     }
@@ -90,5 +92,17 @@ public class Cliente {
 
     public void setEstado(String estado) {
         this.estado = estado;
+    }
+
+    // ==========================================
+    // NUEVO: FECHA DE CREACIÓN
+    // ==========================================
+
+    public Timestamp getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(Timestamp fechaCreacion) {
+        this.fechaCreacion = fechaCreacion;
     }
 }
