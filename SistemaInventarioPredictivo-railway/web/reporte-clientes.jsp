@@ -6,6 +6,9 @@
 <%@page import="java.text.DecimalFormat"%>
 <%@page import="java.text.DecimalFormatSymbols"%>
 <%@page import="java.util.Locale"%>
+<%@page import="java.time.LocalDateTime"%> <%-- NUEVO --%>
+<%@page import="java.time.format.DateTimeFormatter"%> <%-- NUEVO --%>
+<%@page import="java.sql.Timestamp"%> <%-- NUEVO --%>
 
 <%!
     private String escapar(Object valor) {
@@ -65,6 +68,28 @@
         }
 
         return "-";
+    }
+
+    // NUEVO: formato de fecha igual al de Boletas
+    private String formatearFechaHora(Object valor) {
+        if (valor == null) {
+            return "-";
+        }
+
+        DateTimeFormatter formato =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+        if (valor instanceof Timestamp) {
+            return ((Timestamp) valor)
+                    .toLocalDateTime()
+                    .format(formato);
+        }
+
+        if (valor instanceof LocalDateTime) {
+            return ((LocalDateTime) valor).format(formato);
+        }
+
+        return valor.toString();
     }
 %>
 
@@ -797,6 +822,7 @@
                                 <th>Cantidad de compras</th>
                                 <th>Monto acumulado</th>
                                 <th>Situación</th>
+                                <th>Creado</th> <!-- NUEVO -->
                             </tr>
                         </thead>
 
@@ -805,7 +831,7 @@
                             <% if (clientes.isEmpty()) { %>
 
                                 <tr>
-                                    <td colspan="7" class="vacio">
+                                    <td colspan="8" class="vacio">
                                         No se encontraron clientes
                                         registrados.
                                     </td>
@@ -853,6 +879,11 @@
                                             "email",
                                             "correoElectronico"
                                     );
+
+                                    // NUEVO: fecha de creación del cliente
+                                    String fechaCreacion = formatearFechaHora(
+                                            cliente.get("fechaCreacion")
+                                    );
                                 %>
 
                                     <tr>
@@ -884,6 +915,11 @@
                                             <span class="estado <%= claseEstado %>">
                                                 <%= textoEstado %>
                                             </span>
+                                        </td>
+
+                                        <!-- NUEVO -->
+                                        <td>
+                                            <%= escapar(fechaCreacion) %>
                                         </td>
                                     </tr>
 
