@@ -1,4 +1,3 @@
-
 package repository;
 
 import util.ConexionBD;
@@ -173,6 +172,8 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "m.estado AS estado, " +
                 "i.stockActual AS stockActual, " +
                 "i.stockMinimo AS stockMinimo, " +
+                "m.fechaCreacion AS fechaCreacion, " +              // NUEVO
+                "i.fechaActualizacion AS fechaActualizacion, " +    // NUEVO
                 "CASE " +
                 "WHEN i.stockActual = 0 THEN 'Agotado' " +
                 "WHEN i.stockActual <= i.stockMinimo THEN 'Stock bajo' " +
@@ -278,6 +279,7 @@ public class ReporteRepositoryImpl implements ReporteRepository {
                 "CONCAT_WS(' ', dp.nombres, dp.apellidos) AS nombre, " +
                 "dp.dni AS dni, " +
                 "c.correo AS correo, " +
+                "dp.fechaCreacion AS fechaCreacion, " +             // NUEVO
                 "COUNT(v.idVenta) AS cantidadCompras, " +
                 "COALESCE(SUM(v.total), 0) AS montoComprado " +
                 "FROM Cliente c " +
@@ -322,7 +324,8 @@ public class ReporteRepositoryImpl implements ReporteRepository {
         sql.append(
                 "GROUP BY " +
                 "c.idCliente, c.idDatosPersonales, " +
-                "dp.nombres, dp.apellidos, dp.dni, c.correo " +
+                "dp.nombres, dp.apellidos, dp.dni, c.correo, " +
+                "dp.fechaCreacion " +                               // NUEVO
                 "ORDER BY cantidadCompras DESC, montoComprado DESC"
         );
 
