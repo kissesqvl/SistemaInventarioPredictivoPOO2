@@ -29,11 +29,13 @@ public class ClienteRepositoryImpl implements ClienteRepository {
                d.dni,
                d.idSexo,
                d.idEstadoCivil,
-               d.estado
+               d.estado,
+               d.fechaCreacion
         FROM Cliente c
         INNER JOIN DatosPersonales d
             ON c.idDatosPersonales = d.idDatosPersonales
         """;
+    // NUEVO: se agregó d.fechaCreacion en el SELECT
 
     // ==========================================
     // FILTRO DE BUSQUEDA
@@ -95,6 +97,11 @@ public class ClienteRepositoryImpl implements ClienteRepository {
 
         cliente.setEstado(
                 rs.getString("estado")
+        );
+
+        // NUEVO: fecha de creación
+        cliente.setFechaCreacion(
+                rs.getTimestamp("fechaCreacion")
         );
 
         return cliente;
