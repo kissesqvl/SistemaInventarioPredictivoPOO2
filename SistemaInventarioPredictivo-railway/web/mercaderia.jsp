@@ -3,6 +3,7 @@
 <%@page import="java.util.Map"%>
 <%@page import="java.util.HashMap"%>
 <%@page import="java.math.BigDecimal"%>
+<%@page import="java.time.format.DateTimeFormatter"%> <%-- NUEVO --%>
 <%@page import="model.MercaderiaServicio"%>
 <%@page import="model.Inventario"%>
 
@@ -28,6 +29,10 @@
                         java.math.RoundingMode.HALF_UP
                   ).toPlainString();
     }
+
+    // NUEVO: formato de fecha igual al de Boletas
+    private static final DateTimeFormatter FORMATO_FECHA =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 %>
 
 <%
@@ -398,7 +403,7 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1050px;
+            min-width: 1250px; /* NUEVO: antes 1050px, por la columna extra */
         }
 
         th {
@@ -828,6 +833,7 @@
                             <th>Stock actual</th>
                             <th>Stock mínimo</th>
                             <th>Estado</th>
+                            <th>Creado</th> <!-- NUEVO -->
                             <th>Acciones</th>
                         </tr>
                     </thead>
@@ -859,6 +865,13 @@
                                         && inventario != null
                                         && inventario.getStockActual()
                                            <= inventario.getStockMinimo();
+
+                                // NUEVO: fecha de creación (yyyy-MM-dd HH:mm:ss)
+                                String fechaCreacion =
+                                        item.getFechaCreacion() != null
+                                        ? item.getFechaCreacion()
+                                                .format(FORMATO_FECHA)
+                                        : "-";
                     %>
 
                         <tr>
@@ -1025,6 +1038,12 @@
 
                             </td>
 
+                            <!-- NUEVO: CREADO -->
+
+                            <td style="white-space: nowrap;">
+                                <%= escapar(fechaCreacion) %>
+                            </td>
+
                             <!-- ACCIONES -->
 
                             <td>
@@ -1092,7 +1111,7 @@
                     %>
 
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 <div class="empty">
                                     No se encontraron productos
                                     ni servicios registrados.
